@@ -2,92 +2,100 @@ var request = reuire("request");
 var request = request.defaults({jar: true})
 const Service, Characteristic;
 
-
 module.exports = function (homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
-    homebridge.registerAccessory("homebridge-sleepiq", "SleepNumber", SleepNumberBed)
+    homebridge.registerPlatform("homebridge-SleepIQ", "SleepNumber", SleepNumber)
+}
+
+SleepNumber.prototype = {
+    getServices: function () {
+	let informationService = new Service.AccessoryInformation();
+	informationService
+	    .setCharacteristic(Characteristic.Manufacturer, "Sleep Number")
+	    .setCharacteristic(Characteristic.Model, "SleepIQ")
+	    .setCharacteristic(Characteristic.SerialNumber, "360");
+
+	let occupancyService = new Service.OccupancySensor("SleepNumber");
+	occupancyService
+	    .getCharacteristic(Characteristic.occupancyDetected)
+	    .on('get', this.checkOccupancy.bind(this));
+
+	this.informationService = informationService;
+	this.occupancyService = occupancyService;
+	return [informationService, occupancyService]
+    }
 };
 
-class SleepNumberBed {
-    function constructor(log, config) {
-	this.username = config["username"];
-	this.password = config["password"];
-	this.log = log;
-	this.occupancyService = new Service.OccupancySensor(this.name);
-	this.occupancyDetected = Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED
-	this.checkOccupancy()
-	setInterval(this.checkOccupancy.bind(this), 1800 * 1000)
-    }
+function SleepNumber(log, config) {
+    this.log = log
+    this.username = config["username"];
+    this.password = config["password"];
+    var key, isInBedL, isInBedR
+    var tryAgain = false
+    var that = this
+}
 
-    function checkOccupancy() {
-	bedStatus = getOccupancy().bind(this)
-	if bedStatus[0] == true {
-	    this.occupancyDetected = Characteristic.OccupancyDetected.OCCUPANCY_DETECTED∑
+SleepNumber.prototype = {
+    checkOccupancy: function (callback) {
+	getOccupancy()
+	if (this.isInBedL == true) {
+	    this.occupancyDetected = Characteristic.OccupancyDetected.OCCUPANCY_DETECTED
 	}
 	else {
 	    this.occupancyDetected = Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED
 	}
-	this.setOccupancyDetected(this.occupancyDetected)
+	return callback(this.occupancyDetected)
     }
-
-    function setOccupancyDetected(value) {
-	return this.occupancyService.setCharacteristic(Characteristic.OccupancyDetected, value)
-    }
-
-    function getOccupancyDetected (callback) {
-	return callback(null, this.occupancyDetected)
-    }
-
-    function authenticate() {
-	r = request(
+	
+    authenticate: function () {
+	console.log('SleepIQ Authenticating...')
+	request(
 	    {
 		method: 'PUT',
 		uri: 'https://api.sleepiq.sleepnumber.com/rest/login',
-		body: JSON.stringify({'login': this.username, 'password': this.password})
+		body: JSON.stringify({'login': that.username, 'password': that.password})
 	    }, function(err, response, body) {
-		var json = JSON.parse(body);
-		var key = json.key;
-	    }.bind(this)
-	);
+		let json = JSON.parse(body)
+		that.key = json.key
+		if(that.tryAgain == true) {
+		    that.tryAgain = false
+		    that.getOccupancy()
+		}
+	    }
+	)
     }
 
-    function getOccupancy() {
-	r = request(
+    getOccupancy: function () {
+	console.log('Getting SleepIQ Occupancy...')
+	request(
 	    {
 		method: 'GET',
-		uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/familyStatus' + '?_k=' + this.key
+		uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/familyStatus' + '?_k=' + that.key
 	    }, function(err, response, body) {
-		var json = JSON.parse(body);
-		if json.Error.Code == 50002 {
-		    authenticate();
-		    return getOccupancy();
+		let json = JSON.parse(body);
+		if(json.hasOwnProperty('Error')) {
+		    if (json.Error.Code == 50002) {
+			console.log('SleepIQ Authentication Failed')
+			that.tryAgain = true
+			that.authenticate()
+		    }
 		}
 		else {
-		    this.isInBedL = JSON.parse(r.response.body).beds[0].leftSide.isInBed;
-		    this.isInBedR = JSON.pares(r.response.body).beds[0].rightSide.isInBed;
-		    return [this.isInBedL, this.isInBedR]
+		    that.isInBedL = json.beds[0].leftSide.isInBed
+		    that.isInBedR = json.beds[0].rightSide.isInBed
 		}
 	    }
 	);
     }    
-    
+}
 
-    SleepNumberBed.prototype.getState = function(callback) {
-	this.log("Getting current state...");
 
-	getOccupancy();
-	
-	getServices: function () {
-	    let informationService = new Service.AccessoryInformation();
-	    informationService
-		.setCharacteristic(Characteristic.Manufacturer, "Sleep Number")
-		.setCharacteristic(Characteristic.Model, "SleepIQ")
-		.setCharacteristic(Characteristic.SerialNumber, "360");
+    // function setOccupancyDetected(value) {
+    // 	return this.occupancyService.setCharacteristic(Characteristic.OccupancyDetected, value)
+    // }
 
-	    this.occupancyService
-		.getCharacteristic(Characteristic.OccupancyDetected)
-		.on('get', this.getOccupancy.bind(this))
-	    return [informationService, this.occupancyService]
-	}
-    }
+    // function getOccupancyDetected (callback) {
+    // 	return callback(null, this.occupancyDetected)
+    // }
+
