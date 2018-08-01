@@ -18,14 +18,11 @@ class SleepNumberPlatform {
 	this.config = config
 	this.username = config["username"]
 	this.password = config["password"]
-	this.bedSides = config["sides"]
 	this.refreshTime = config["refreshTime"] * 1000
-	this.accessories = []
+	this.accessories = new Map()
 	this.key = new EventEmitter()
-
-	this.isInBedL
-	this.isInBedR
-
+	this.json = new EventEmitter()
+	
 	if (api) {
 	    this.api = api
 
@@ -38,81 +35,105 @@ class SleepNumberPlatform {
     }
 
     didFinishLaunching () {
-	this.setupSides()
 	this.checkOccupancy()
 	setInterval(this.checkOccupancy.bind(this), this.refreshTime)
     }
 
-    addAccessory () {
-	this.setupSides()
+    addAccessories () {
+	this.json.json.beds.forEach( function (bed, index) {
+	    let bedName = "bed" + index
+	    let bedID = bed.bedId
+	    let sides = JSON.parse(JSON.stringify(bed))
+	    delete sides.status
+	    delete sides.bedId
+	    Object.keys(sides).forEach( function (bedside, index) {
+		let sideName = bedName+bedside
+		let sideID = bedID+bedside
+		if(!this.accessories.has(sideID)) {
+		    this.log("Found BedSide: ", sideName)
+		    
+		    let uuid = UUIDGen.generate(sideID)
+		    let bedSide = new Accessory(sideName, uuid)
+		    bedSide.context.sideId = bedID+bedside
+		    bedSide.addService(Service.OccupancySensor, sideName)
+		    
+		    let bedSideAccessory = new SleepNumber(this.log, bedSide)
+		    bedSideAccessory.getServices()
+		    
+		    this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSide])
+		    this.accessories.set(sideID, bedSideAccessory)
+		} else {
+		    this.log(sideName + " already added from cache")
+		}
+	    }.bind(this))
+	}.bind(this))
     }
-
-    removeAccessory () {
-	this.log('Remove Accessories')
-	this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", this.accessories)
-	this.accessories = []
+    
+    removeAccessory (accessory) {
+    	this.log('Remove Accessory: ', accessory.accessory.displayName)
+    	this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory.accessory])
+    	this.accessories.delete(accessory.accessory.context.sideId)
     }
 
     // called during setup, restores from cache (reconfigure instead of create new)
     configureAccessory (accessory) {
 	this.log("Configuring Accessory: ", accessory.displayName)
-	this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory])
-	//	this.accessories.push(accessory)
+	accessory.reachable = true
+	let bedSideAccessory = new SleepNumber(this.log, accessory)
+	bedSideAccessory.getServices()
+	this.accessories.set(accessory.context.sideId, bedSideAccessory)
+
     }
 
-    setupSides() {
-	if (this.bedSides.includes('left')) {
-	    this.log("adding left side")
-	    var uuid = UUIDGen.generate('SN-Left')
-	    this.bedSideL = new Accessory('SN-Left', uuid)
-	    this.bedSideL.addService(Service.OccupancySensor, 'SN-Left')
-	    this.SNLeft = new SleepNumber(this.log, this.bedSideL, this.occupancyDetectedL)
-	    this.SNLeft.getServices()
-	    this.accessories.push(this.bedSideL)
-	}
-	
-	if (this.bedSides.includes('right')) {
-	    this.log("adding right side")
-	    var uuid = UUIDGen.generate('SN-Right')
-	    this.bedSideR = new Accessory('SN-Right', UUIDGen.generate('SN-Right'))
-	    this.bedSideR.addService(Service.OccupancySensor, 'SN-Right')
-	    this.SNRight = new SleepNumber(this.log, this.bedSideR, this.occupancyDetectedR)
-	    this.SNRight.getServices()
-	    this.accessories.push(this.bedSideR)
-	}
-	this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", this.accessories)
-	this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', this.accessories)
+/*
+    beds[0..n].bedId+[left|right]
+    beds[0..n].[left|right]Side.isInBed
+    {"beds":
+     [
+	 {"status":1,
+	  "bedId":"-9223372019955931774",
+	  "leftSide":{"isInBed":false,
+		      "alertDetailedMessage":"No Alert",
+		      "sleepNumber":35,
+		      "alertId":0,
+		      "lastLink":"00:00:00",
+		      "pressure":1304},
+	  "rightSide":{"isInBed":false,
+		       "alertDetailedMessage":"No Alert",
+		       "sleepNumber":40,
+		       "alertId":0,
+		       "lastLink":"00:00:00",
+		       "pressure":1265}
+	 }
+     ]
     }
-    
+*/        
     checkOccupancy () {
-	this.getOccupancy()
-	if (this.bedSides.includes('left')) {
-	    if (this.isInBedL == true) {
-		this.SNLeft.setOccupancyDetected(Characteristic.OccupancyDetected.OCCUPANCY_DETECTED)
-	    }
-	    else {
-		this.SNLeft.setOccupancyDetected(Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED)
-	    }
-	}
-	if (this.bedSides.includes('right')) {
-	    if (this.isInBedR == true) {
-		this.SNRight.setOccupancyDetected(Characteristic.OccupancyDetected.OCCUPANCY_DETECTED)
-	    }
-	    else {
-		this.SNRight.setOccupancyDetected(Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED)
-	    }
-	}
+	this.fetchData()
+	this.json.on('updateData', function () {
+	    this.json.json.beds.forEach( function (bed, index) {
+		let bedID = bed.bedId
+		let sides = JSON.parse(JSON.stringify(bed))
+		delete sides.status
+		delete sides.bedId
+		Object.keys(sides).forEach( function (bedside, index) {
+		    let sideID = bedID+bedside
+		    if(!this.accessories.has(sideID)) {
+			this.log("new bedside detected")
+			this.addAccessories()
+			return
+		    } else {
+			let bedSideAccessory = this.accessories.get(sideID)
+			bedSideAccessory.setOccupancyDetected(bedside.isInBed)
+		    }			
+		}.bind(this))
+	    }.bind(this))
+	}.bind(this))
     }
-
-    setOccupancyDetected (value, side) {
-	return this.occupancyService.setCharacteristic(Characteristic.OccupancyDetected, value)
-    }
-
-
 
     authenticate () {
 	this.log('SleepIQ Authenticating...')
-	var body = new EventEmitter()
+	let body = new EventEmitter()
 	request(
 	    {
 		method: 'PUT',
@@ -121,17 +142,17 @@ class SleepNumberPlatform {
 	    }, function (err, response, data) {
 		body.data = data
 		body.emit('updateKey')
-	    })
+	    }.bind(this))
 	body.on('updateKey', function () {
-	    let json = JSON.parse(body.data)
-	    this.key.key = json.key
+	    let jsonKey = JSON.parse(body.data)
+	    this.key.key = jsonKey.key
 	    this.key.emit('update')
 	}.bind(this))
     }
 
-    getOccupancy () {
-	this.log('Getting SleepIQ Occupancy...')
-	var body = new EventEmitter()
+    fetchData () {
+	this.log('Getting SleepIQ JSON Data...')
+	let body = new EventEmitter()
 	request(
 	    {
 		method: 'GET',
@@ -142,23 +163,21 @@ class SleepNumberPlatform {
 	    },
 	    function (err, response, data) {
 		body.data = data
-		body.emit('updateStat')
-	    }
+		body.emit('updateData')
+	    }.bind(this)
 	)
-	body.on('updateStat', function () {
-	    let json = JSON.parse(body.data);
-	    if(json.hasOwnProperty('Error')) {
-		if (json.Error.Code == 50002) {
+	body.on('updateData', function () {
+	    this.json.json = JSON.parse(body.data);
+	    if(this.json.json.hasOwnProperty('Error')) {
+		if (this.json.json.Error.Code == 50002) {
 		    this.log('SleepIQ Authentication Failed')
 		    this.authenticate()
 		    this.key.on('update', function() {
-			this.getOccupancy()
+			this.fetchData()
 		    }.bind(this))
 		}
-	    }
-	    else {
-		this.isInBedL = json.beds[0].leftSide.isInBed
-		this.isInBedR = json.beds[0].rightSide.isInBed
+	    } else {
+		this.json.emit('updateData')
 	    }
 	}.bind(this))
     }
@@ -167,15 +186,21 @@ class SleepNumberPlatform {
 }
 
 class SleepNumber {
-    constructor (log, accessory, occupancyDetected) {
+    constructor (log, accessory) {
 	this.log = log
 	this.accessory = accessory
-	this.occupancyDetected = occupancyDetected
+	this.occupancyDetected = Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED
 	this.occupancyService = this.accessory.getService(Service.OccupancySensor)
     }
 
     setOccupancyDetected (value) {
-	this.occupancyDetected = value
+	if (value == true) {
+	    this.occupancyDetected = Characteristic.OccupancyDetected.OCCUPANCY_DETECTED
+	    
+	}
+	else {
+	    this.occupancyDetected = Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED
+	}
 	return this.occupancyService.setCharacteristic(Characteristic.OccupancyDetected, value)
     }
 
