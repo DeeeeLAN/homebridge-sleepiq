@@ -1,26 +1,26 @@
 {
-   "name": "homebridge-sleepiq",
-   "version": "1.0.4",
-   "description": "Sleep Number SleepIQ plugin for homebridge: https://github.com/nfarina/homebridge",
-   "license": "ISC",
-   "keywords": [
-       "homebridge-plugin",
-       "Sleep Number",
-       "SleepIQ"
-   ],
-   "repository": {
-       "type": "git",
-       "url": "https://github.com/avidmills/homebridge-sleepiq.git"
-   },
-   "bugs": {
-       "url": "https://github.com/avidmills/homebridge-sleepiq/issues"
-   },
-   "engines": {
-       "node": ">=0.12.0",
-       "homebridge": ">=0.2.0"
-   },
-   "dependencies": {
-       "request": "^6.0.0",
-       "events": "^6.0.0"
-   }
+    "name": "homebridge-sleepiq",
+    "version": "1.0.5",
+    "description": "Sleep Number SleepIQ plugin for homebridge: https://github.com/nfarina/homebridge",
+    "license": "ISC",
+    "keywords": [
+        "homebridge-plugin",
+        "Sleep Number",
+        "SleepIQ"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/avidmills/homebridge-sleepiq.git"
+    },
+    "bugs": {
+        "url": "https://github.com/avidmills/homebridge-sleepiq/issues"
+    },
+    "engines": {
+        "node": ">=0.12.0",
+        "homebridge": ">=0.2.0"
+    },
+    "dependencies": {
+        "request": "^6.0.0",
+        "events": "^6.0.0"
+    }
 }
