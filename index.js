@@ -27,7 +27,7 @@ class SleepNumberPlatform {
 	    this.api = api
 
 	    this.api.on('didFinishLaunching', function () {
-		this.log("API Finished Launching")
+		this.log.debug("API Finished Launching")
 		this.didFinishLaunching()
 	    }.bind(this))
 	}
@@ -35,8 +35,9 @@ class SleepNumberPlatform {
     }
 
     didFinishLaunching () {
-	this.checkOccupancy()
-	setInterval(this.checkOccupancy.bind(this), this.refreshTime)
+	this.json.on('updateData', this.checkOccupancy.bind(this)) // processes new JSON every time data is updated
+	this.fetchData() // initial data grab
+	setInterval(this.fetchData.bind(this), this.refreshTime) // continue to grab data every few seconds
     }
 
     addAccessories () {
@@ -84,55 +85,9 @@ class SleepNumberPlatform {
 	this.accessories.set(accessory.context.sideId, bedSideAccessory)
 
     }
-
-/*
-    beds[0..n].bedId+[left|right]
-    beds[0..n].[left|right]Side.isInBed
-    {"beds":
-     [
-	 {"status":1,
-	  "bedId":"-9223372019955931774",
-	  "leftSide":{"isInBed":false,
-		      "alertDetailedMessage":"No Alert",
-		      "sleepNumber":35,
-		      "alertId":0,
-		      "lastLink":"00:00:00",
-		      "pressure":1304},
-	  "rightSide":{"isInBed":false,
-		       "alertDetailedMessage":"No Alert",
-		       "sleepNumber":40,
-		       "alertId":0,
-		       "lastLink":"00:00:00",
-		       "pressure":1265}
-	 }
-     ]
-    }
-*/        
-    checkOccupancy () {
-	this.fetchData()
-	this.json.on('updateData', function () {
-	    this.json.json.beds.forEach( function (bed, index) {
-		let bedID = bed.bedId
-		let sides = JSON.parse(JSON.stringify(bed))
-		delete sides.status
-		delete sides.bedId
-		Object.keys(sides).forEach( function (bedside, index) {
-		    let sideID = bedID+bedside
-		    if(!this.accessories.has(sideID)) {
-			this.log("new bedside detected")
-			this.addAccessories()
-			return
-		    } else {
-			let bedSideAccessory = this.accessories.get(sideID)
-			bedSideAccessory.setOccupancyDetected(bedside.isInBed)
-		    }			
-		}.bind(this))
-	    }.bind(this))
-	}.bind(this))
-    }
-
+    
     authenticate () {
-	this.log('SleepIQ Authenticating...')
+	this.log.debug('SleepIQ Authenticating...')
 	let body = new EventEmitter()
 	request(
 	    {
@@ -151,7 +106,7 @@ class SleepNumberPlatform {
     }
 
     fetchData () {
-	this.log('Getting SleepIQ JSON Data...')
+	this.log.debug('Getting SleepIQ JSON Data...')
 	let body = new EventEmitter()
 	request(
 	    {
@@ -170,17 +125,41 @@ class SleepNumberPlatform {
 	    this.json.json = JSON.parse(body.data);
 	    if(this.json.json.hasOwnProperty('Error')) {
 		if (this.json.json.Error.Code == 50002) {
-		    this.log('SleepIQ Authentication Failed')
+		    this.log.debug('SleepIQ authentication failed, stand by for automatic reauthentication')
 		    this.authenticate()
 		    this.key.on('update', function() {
 			this.fetchData()
 		    }.bind(this))
 		}
 	    } else {
+		this.log.debug('SleepIQ JSON data successfully retrieved')
 		this.json.emit('updateData')
 	    }
 	}.bind(this))
     }
+
+    checkOccupancy () {
+	this.json.json.beds.forEach( function (bed, index) {
+	    let bedID = bed.bedId
+	    let sides = JSON.parse(JSON.stringify(bed))
+	    delete sides.status
+	    delete sides.bedId
+	    Object.keys(sides).forEach( function (bedside, index) {
+		let sideID = bedID+bedside
+		if(!this.accessories.has(sideID)) {
+		    this.log("new bedside detected")
+		    this.addAccessories()
+		    return
+		} else {
+		    this.log.debug('SleepIQ Occupancy Data: {' + bedside + ':' + sides[bedside].isInBed + '}')
+		    let bedSideAccessory = this.accessories.get(sideID)
+		    bedSideAccessory.setOccupancyDetected(sides[bedside].isInBed)
+		}			
+	    }.bind(this))
+	}.bind(this))
+    }
+
+    
 
 
 }
