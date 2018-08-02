@@ -18,7 +18,7 @@ class SleepNumberPlatform {
 	this.config = config
 	this.username = config["username"]
 	this.password = config["password"]
-	this.refreshTime = config["refreshTime"] * 1000
+	this.refreshTime = (config["refreshTime"] || 5) * 1000
 	this.accessories = new Map()
 	this.key = new EventEmitter()
 	this.json = new EventEmitter()

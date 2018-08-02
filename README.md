@@ -19,8 +19,8 @@ Configuration sample:
 			"username"    : "Your SleepIQ Email Address",
 			"password"    : "Your SleepIQ Password",
 			"refreshTime" : # of seconds between each network request
-}
-	],
+		}
+]
 
 ```
 

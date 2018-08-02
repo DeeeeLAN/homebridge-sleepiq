@@ -1,0 +1,17 @@
+{
+    "bridge": {
+        "name": "Homebridge",
+        "username": "...",
+        "port": "...",
+        "pin": "..."
+    },
+    
+    "platforms": [
+	{
+	    "platform"    : "SleepNumber",
+	    "username"    : "email",
+	    "password"    : "password",
+	    "refreshTime" : "###"
+	}
+    ]
+}
