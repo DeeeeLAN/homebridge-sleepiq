@@ -34,7 +34,7 @@ Fields:
 * "platform": Must always be "SleepNumber" (required)
 * "username": SleepIQ account email address
 * "Password": SleepIQ account password
-* "refreshTime": Optional umber of seconds between each network request (in digits, 0-9). If not specified, defaults to 5 seconds.
+* "refreshTime": Optional number of seconds between each network request (in digits, 0-9). If not specified, defaults to 5 seconds.
 # Issues/Future Work
 * Allow for different refresh times based on the time of day
 * Verify everything still works will twin/full beds (If anybody has one, contact me)
