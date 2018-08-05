@@ -14,8 +14,8 @@
  * 
  * To use, launch node in the same directory as this file, then create an
  * object with
- *|    API = require('./API.js') 
- *|    api = new API('username','password')
+ *| > API = require('./API.js') 
+ *| > api = new API('username','password')
  * 
  * List of class methods:
  * - api.login()          : required first
