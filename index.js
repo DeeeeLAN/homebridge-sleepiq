@@ -163,7 +163,7 @@ class SleepNumber {
 	    
 	}
 	
-	this.numberService.getCharacteristic(Characteristic.On, true);
+	this.numberService.setCharacteristic(Characteristic.On, true);
 	
 
 	this.getSleepNumber = this.getSleepNumber.bind(this);
