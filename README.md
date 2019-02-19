@@ -1,7 +1,7 @@
 # homebridge-SleepIQ
 SleepIQ plugin for [HomeBridge](https://github.com/nfarina/homebridge)
 
-This repository contains a SleepIQ plugin for homebridge that exposes bed occupancy. In theory it is capable of detecting all the beds on your account, and automatically configuring a sensor for each bedside. I was only able to test with a single queen bed so I don't actually know what will happen with multiple beds or with a twin/full mattress. Let me know!
+This repository contains a SleepIQ plugin for homebridge that exposes bed occupancy, and allows you to control the sleep number setting (modeled as a lightbulb). In theory it is capable of detecting all the beds on your account, and automatically configuring a sensor for each bedside. I was only able to test with a single queen bed so I don't actually know what will happen with multiple beds or with a twin/full mattress. Let me know!
 
 It works by taking advantage of the (undocumented) SleepIQ API found at [http://api.sleepiq.sleepnumber.com](http://api.sleepiq.sleepnumber.com). Unfortunately, this requires regular API network requests. So far, I have not seen Sleep Number get upset with too many requests, but in theory they could at some point in time if we flood their network. If anybody has this happen, file a ticket. I tried scanning my network to see if the SleepIQ hub exposed any network interface so I could access the data locally, but I couldn't find anything. If anybody has better luck, please contact me!
 
