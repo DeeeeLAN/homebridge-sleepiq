@@ -187,8 +187,14 @@ class SleepNumber {
     }
 
     setSleepNumber (value) {
-	this.log.debug('Setting sleep number='+value+' on side='+this.accessory.context.side);
-	this.snapi.sleepNumber(this.accessory.context.side, value);
+	let side = '';
+	if (this.accessory.context.side) {
+	    side = this.accessory.context.side;
+	} else {
+	    side = this.accessory.context.sideId.indexOf('leftSide') !== -1 ? 'L' : 'R';
+	}
+	this.log.debug('Setting sleep number='+value+' on side='+side);
+	this.snapi.sleepNumber(side, value);
     }
 
     updateSleepNumber(value) {
