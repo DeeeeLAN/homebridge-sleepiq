@@ -58,6 +58,9 @@ class API {
 	    method: 'PUT',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/login',
 	    body: JSON.stringify({'login': this.username, 'password': this.password})}, function(err, resp, data) {
+		if (err) {
+		    return callback("Error: login PUT request returned undefined. Error:",err);
+		}
 		this.json = JSON.parse(data)
 		this.userID = this.json.userID
 		this.key = this.json.key
@@ -106,14 +109,19 @@ class API {
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/familyStatus',
 	    qs: {_k: this.key}}, function(err, resp, data) {
-		this.json = JSON.parse(data)
-		if (this.json.beds) {
-		    this.bedID = this.json.beds[this.defaultBed].bedId
+	 	if (err) {
+		    return callback("Error: familyStatus GET request returned undefined. Error:",err);
 		}
-		if (callback) {
-		    callback(data);
-		}
-		// console.log(JSON.stringify(this.json, null, 3))
+		if (data) {
+		    this.json = JSON.parse(data)
+		    if (this.json.beds) {
+			this.bedID = this.json.beds[this.defaultBed].bedId
+		    }
+		    if (callback) {
+			callback(data);
+		    }
+		    // console.log(JSON.stringify(this.json, null, 3))
+		} 
 	    }.bind(this))
 
 	/*
@@ -285,6 +293,9 @@ class API {
 	    body: JSON.stringify({side: side, sleepNumber: num})
 	},
 		function(err, resp, data) {
+		    if (err) {
+			return callback("SleepNumber PUT failed. Error:",err);
+		    }
 		    this.json = JSON.parse(data);
 		    if (callback) {
 			callback(data);

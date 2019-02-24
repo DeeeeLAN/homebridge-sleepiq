@@ -95,13 +95,28 @@ class SleepNumberPlatform {
     
     authenticate () {
 	this.log.debug('SleepIQ Authenticating...')
-	this.snapi.login(() => this.key.emit('update'));
+	this.snapi.login((data, err=null) => {
+	    if (err) {
+		this.log.debug(data, err);
+	    } else {
+		this.log.debug("Login result:", data);
+	    }
+	    this.key.emit('update')
+	});
     }
 
     fetchData () {
 	this.log.debug('Getting SleepIQ JSON Data...')
 	let body = new EventEmitter()
-	this.snapi.familyStatus( () => body.emit('updateData'));
+	this.snapi.familyStatus( (data, err=null) => {
+	    if (err) {
+		this.log.debug(data, JSON.stringify(err));
+	    } else {
+	   	this.log.debug("Family Status GET results:", data);
+	    }
+	    body.emit('updateData');
+	});
+
 	body.on('updateData', function () {
 	    if(this.snapi.json.hasOwnProperty('Error')) {
 		if (this.snapi.json.Error.Code == 50002) {
@@ -186,6 +201,7 @@ class SleepNumber {
     	return callback(null, this.occupancyDetected)
     }
 
+    // Send a new sleep number to the bed
     setSleepNumber (value) {
 	let side = '';
 	if (this.accessory.context.side) {
@@ -194,14 +210,18 @@ class SleepNumber {
 	    side = this.accessory.context.sideId.indexOf('leftSide') !== -1 ? 'L' : 'R';
 	}
 	this.log.debug('Setting sleep number='+value+' on side='+side);
-	this.snapi.sleepNumber(side, value);
+	this.snapi.sleepNumber(side, value, (data, err=null) => {
+	    if (err) {
+		this.log.debug(data, err);
+	    } else {
+		this.log.debug("Sleep Number PUT result:", data)
+	    }
+	});
     }
 
+    // Keep sleep number updated with external changes through sleepIQ app
     updateSleepNumber(value) {
 	this.sleepNumber = value;
-	// this.numberService.setCharacteristic(Characteristic.On, true);
-
-	//return this.lightService.setCharacteristic(Characteristic.Brightness, value);
     }
 
     getSleepNumber (callback) {
@@ -210,7 +230,6 @@ class SleepNumber {
 
     getServices () {
 	
-
 	let informationService = this.accessory.getService(Service.AccessoryInformation);
 	informationService
 	    .setCharacteristic(Characteristic.Manufacturer, "Sleep Number")
