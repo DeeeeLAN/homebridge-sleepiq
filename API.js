@@ -252,18 +252,22 @@ class API {
 
 	/*
 	  {"status":1,
-	  "leftSide":{"isInBed":false,
-	  "alertDetailedMessage":"No Alert",
-	  "sleepNumber":30,
-	  "alertId":0,
-	  "lastLink":"00:00:00",
-	  "pressure":1056},
-	  "rightSide":{"isInBed":false,
-	  "alertDetailedMessage":"No Alert",
-	  "sleepNumber":40,
-	  "alertId":0,
-	  "lastLink":"00:00:00",
-	  "pressure":1266}}
+	  "leftSide":{
+	    "isInBed":false,
+	    "alertDetailedMessage":"No Alert",
+	    "sleepNumber":30,
+	    "alertId":0,
+	    "lastLink":"00:00:00",
+	    "pressure":1056
+	  },
+	  "rightSide":{
+	    "isInBed":false,
+	    "alertDetailedMessage":"No Alert",
+	    "sleepNumber":40,
+	    "alertId":0,
+	    "lastLink":"00:00:00",
+	    "pressure":1266
+	  }}
 	*/
     }
 
@@ -342,6 +346,111 @@ class API {
 	  "rightSideSleepNumber":40}
 	*/
     }
+
+
+    // Side is either 'L' or 'R'. Num is any number in [1-6, 128]
+    preset (side, num, callback=null) {
+	request({
+	    method: 'PUT',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/preset',
+	    qs: {_k: this.key},
+	    body: JSON.stringify({speed: 0, side: side, preset: num})
+	},
+		function(err, resp, data) {
+		    if (err) {
+			return callback("preset PUT failed. Error:",err);
+		    }
+		    this.json = JSON.parse(data);
+		    if (callback) {
+			callback(data);
+		    }
+		    // console.log(JSON.stringify(this.json, null, 3))
+		}.bind(this))
+	
+	/*
+	  {}
+	*/
+    }
+
+
+    // Side is either 'L' or 'R'. Num is any number in the range [0-100]. Actuator is either 'F' or 'H' (foot or head).
+    adjust (side, actuator, num, callback=null) {
+	request({
+	    method: 'PUT',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/adjustment/micro',
+	    qs: {_k: this.key},
+	    body: JSON.stringify({speed: 0, side: side, position: num, actuator: actuator})
+	},
+		function(err, resp, data) {
+		    if (err) {
+			return callback("adjust PUT failed. Error:",err);
+		    }
+		    this.json = JSON.parse(data);
+		    if (callback) {
+			callback(data);
+		    }
+		    // console.log(JSON.stringify(this.json, null, 3))
+		}.bind(this))
+	
+	/*
+	  {}
+	*/
+    }
+
+
+    foundationStatus (callback=null) {
+	request({
+	    method: 'GET',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/status',
+	    qs: {_k: this.key}
+	}, function(err, resp, data) {
+	    if (err) {
+		return callback("foundationStatus GET failed. Error:",err);
+	    }
+	    this.json = JSON.parse(data);
+	    if (callback) {
+		callback(data);
+	    }
+	})
+	// console.log(JSON.stringify(this.json, null, 3))}.bind(this))
+
+	/*
+	  {
+	    "Error": {
+	      "Code": 404,
+	      "Message": " No Foundation Device"
+	    }
+	  }
+	  {
+	  "fsCurrentPositionPresetRight": "Flat",
+	  "fsNeedsHoming": false,
+	  "fsRightFootPosition": "00",
+	  "fsLeftPositionTimerLSB": "00",
+	  "fsTimerPositionPresetLeft": "No timer running, thus no preset to active",
+	  "fsCurrentPositionPresetLeft": "Zero G",
+	  "fsLeftPositionTimerMSB": "00",
+	  "fsRightFootActuatorMotorStatus": "00",
+	  "fsCurrentPositionPreset": "54",
+	  "fsTimerPositionPresetRight": "No timer running, thus no preset to active",
+	  "fsType": "Split King",
+	  "fsOutletsOn": false,
+	  "fsLeftHeadPosition": "00",
+	  "fsIsMoving": true,
+	  "fsRightHeadActuatorMotorStatus": "00",
+	  "fsStatusSummary": "45",
+	  "fsTimerPositionPreset": "00",
+	  "fsLeftFootPosition": "00",
+	  "fsRightPositionTimerLSB": "00",
+	  "fsTimedOutletsOn": false,
+	  "fsRightHeadPosition": "00",
+	  "fsConfigured": true,
+	  "fsRightPositionTimerMSB": "00",
+	  "fsLeftHeadActuatorMotorStatus": "01",
+	  "fsLeftFootActuatorMotorStatus": "00"
+	  }
+	*/
+    }
+
     
 
     sleeperData (date, interval) {

@@ -24,6 +24,7 @@ class SleepNumberPlatform {
 	this.key = new EventEmitter();
 	this.json = new EventEmitter();
 	this.snapi = new snapi(this.username, this.password);
+	this.hasFoundation = false;
 	if (api) {
 	    this.api = api;
 
@@ -42,12 +43,32 @@ class SleepNumberPlatform {
     }
 
     addAccessories () {
-	this.snapi.json.beds.forEach( function (bed, index) {
+	this.snapi.json.beds.forEach( async function (bed, index) {
 	    let bedName = "bed" + index
 	    let bedID = bed.bedId
 	    let sides = JSON.parse(JSON.stringify(bed))
 	    delete sides.status
 	    delete sides.bedId
+
+	    var foundationStatus;
+	    await this.snapi.foundationStatus((data, err=null) => {
+		if (err) {
+		    this.log.debug(data, err);
+		} else {
+		    this.log.debug("foundationStatus result:", data);
+		    foundationStatus = JSON.parse(data);
+		    if(foundationStatus.hasOwnProperty('Error')) {
+			if (foundationStatus.Error.Code == 404) {
+			    this.log("No foundation detected");
+			} else {
+			    this.log("Unknown error occured when checking the foundation status. See previous output for more details");
+			}
+		    } else {
+			this.hasFoundation = true;
+		    }
+		}
+	    });
+	    
 	    Object.keys(sides).forEach( function (bedside, index) {
 		let sideName = bedName+bedside
 		let sideID = bedID+bedside
@@ -59,12 +80,23 @@ class SleepNumberPlatform {
 		    bedSide.context.sideId = bedID+bedside;
 		    bedSide.context.side = bedside[0].toUpperCase();
 		    bedSide.context.sideName = sideName;
-
+		    bedSide.context.hasFoundation = this.hasFoundation;
 		    bedSide.addService(Service.Lightbulb, sideName+'Number');
 		    bedSide.addService(Service.OccupancySensor, sideName+'Occupancy');
-		    let numberService = bedSide.getService(Service.Lightbulb);
+		    let numberService = bedSide.getService(Service.Lightbulb, sideName+'Number');
 		    numberService.addCharacteristic(Characteristic.Brightness);
 
+		    if(this.hasFoundation) {
+			this.log("Foundation detected");
+			bedSide.addService(Service.Lightbulb, sideName+'FoundationHead');
+			let foundationHeadService = bedSide.getService(Service.Lightbulb, sideName+'FoundationHead');
+			foundationHeadService.addCharacteristic(Characteristic.Brightness);
+			bedSide.addService(Service.Lightbulb, sideName+'FoundationFoot');
+			let foundationFootService = bedSide.getService(Service.Lightbulb, sideName+'FoundationFoot');
+			foundationFootService.addCharacteristic(Characteristic.Brightness);
+		    }
+
+		    
 		    let bedSideAccessory = new SleepNumber(this.log, bedSide, this.snapi)
 		    bedSideAccessory.getServices()
 		    
@@ -134,11 +166,16 @@ class SleepNumberPlatform {
     }
 
     checkOccupancy () {
-	this.snapi.json.beds.forEach( function (bed, index) {
+	this.snapi.json.beds.forEach(async function (bed, index) {
 	    let bedID = bed.bedId
 	    let sides = JSON.parse(JSON.stringify(bed))
 	    delete sides.status
 	    delete sides.bedId
+
+	    var foundationPositions;
+	    if (this.hasFoundation) {
+		await this.snapi.foundationStatus(data => foundationPositions = JSON.parse(data));
+	    }
 	    Object.keys(sides).forEach( function (bedside, index) {
 		let sideID = bedID+bedside
 		if(!this.accessories.has(sideID)) {
@@ -149,9 +186,16 @@ class SleepNumberPlatform {
 		    this.log.debug('SleepIQ Occupancy Data: {' + bedside + ':' + sides[bedside].isInBed + '}')
 		    this.log.debug('SleepIQ Sleep Number: {' + bedside + ':' + sides[bedside].sleepNumber + '}')
 		    let bedSideAccessory = this.accessories.get(sideID)
-		    bedSideAccessory.setOccupancyDetected(sides[bedside].isInBed)
-		    bedSideAccessory.updateSleepNumber(sides[bedside].sleepNumber)
-		}			
+		    bedSideAccessory.setOccupancyDetected(sides[bedside].isInBed);
+		    bedSideAccessory.updateSleepNumber(sides[bedside].sleepNumber);
+		    if (this.hasFoundation) {
+			if (bedSide == 'leftSide') {
+			    bedSideAccessory.updateFoundation(foundationPositions.fsLeftHeadPosition, foundationPositions.fsLeftFootPosition);
+			} else {
+			    bedSideAccessory.updateFoundation(foundationPositions.fsRightHeadPosition, foundationPositions.fsRightFootPosition);
+			}
+		    }
+		}
 	    }.bind(this))
 	}.bind(this))
     }
@@ -163,21 +207,41 @@ class SleepNumber {
 	this.log = log;
 	this.accessory = accessory;
 	this.snapi = snapi;
+	this.hasFoundation = this.accessory.context.hasFoundation;
 	this.sleepNumber = 50;
-
-	this.numberService = this.accessory.getService(Service.Lightbulb);
+	this.headPosition = 0;
+	this.footPosition = 0;
+	this.sideName = this.accessory.context.sideId.indexOf('leftSide') !== -1 ? 'leftSide' : 'rightSide';
+	
+	this.numberService = this.accessory.getService(Service.Lightbulb, this.sideName+'Number');
 	this.occupancyService = this.accessory.getService(Service.OccupancySensor);
-
+	if (this.hasFoundation) {
+	    this.foundationHeadService = this.accessory.getService(Service.Lightbulb, this.sideName+'FoundationHead');
+	    this.foundationFootService = this.accessory.getService(Service.Lightbulb, this.sideName+'FoundationFoot');
+	}
+	    
 	this.occupancyDetected = Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED;
 
 	if (!this.numberService) {
-	    let sideName = this.accessory.context.sideId.indexOf('leftSide') !== -1 ? 'leftSide' : 'rightSide';
-	    this.accessory.addService(Service.Lightbulb, sideName+'Number');
-	    this.numberService = this.accessory.getService(Service.Lightbulb);
+	    this.log('numberService not detected as part of accessory. Adding Now');
+	    this.accessory.addService(Service.Lightbulb, this.sideName+'Number');
+	    this.numberService = this.accessory.getService(Service.Lightbulb, this.sideName+'Number');
 	    this.numberService.addCharacteristic(Characteristic.Brightness);
-	    
 	}
 	
+	if (!this.foundationHeadService && this.hasFoundation) {
+	    this.log('foundationHeadService not detected as part of accessory. Adding Now');
+	    this.accessory.addService(Service.Lightbulb, this.sideName+'FoundationHead');
+	    this.foundationHeadService = this.accessory.getService(Service.Lightbulb, this.sideName+'FoundationHead');
+	    this.foundationHeadService.addCharacteristic(Characteristic.Brightness);
+	}
+	if (!this.foundationFootService && this.hasFoundation) {
+	    this.log('foundationFootService not detected as part of accessory. Adding Now');
+	    this.accessory.addService(Service.Lightbulb, this.sideName+'FoundationFoot');
+	    this.foundationFootService = this.accessory.getService(Service.Lightbulb, this.sideName+'FoundationFoot');
+	    this.foundationFootService.addCharacteristic(Characteristic.Brightness);
+	}
+
 	this.numberService.setCharacteristic(Characteristic.On, true);
 	
 
@@ -228,6 +292,38 @@ class SleepNumber {
 	return callback(null, this.sleepNumber);
     }
 
+    // Send a new foundation position to the bed
+    setFoundation (actuator, value) {
+	let side = '';
+	if (this.accessory.context.side) {
+	    side = this.accessory.context.side;
+	} else {
+	    side = this.accessory.context.sideId.indexOf('leftSide') !== -1 ? 'L' : 'R';
+	}
+	this.log.debug('Setting foundation position='+value+' on side='+side+' for position='+actuator);
+	this.snapi.adjust(side, actuator, value, (data, err=null) => {
+	    if (err) {
+		this.log.debug(data, err);
+	    } else {
+		this.log.debug("adjust PUT result:", data)
+	    }
+	});
+    }
+
+    // Keep foundation position updated with external changes through sleepIQ app
+    updateFoundation(head, foot) {
+	this.headPosition = head;
+	this.footPosition = foot;
+    }
+
+    getFoundation (actuator, callback) {
+	if (actuator == 'H') {
+	    return callback(null, this.headPosition);
+	} else {
+	    return callback(null, this.footPosition);
+	}
+    }
+
     getServices () {
 	
 	let informationService = this.accessory.getService(Service.AccessoryInformation);
@@ -257,7 +353,27 @@ class SleepNumber {
 		}
 	    }.bind(this))
 
-	return [informationService, this.occupancyService, this.numberService]
+	if (this.hasFoundation) {
+	    this.foundationHeadService
+		.getCharacteristic(Characteristic.Brightness)
+		.on('set', function (value, callback) {
+		    this.log.debug("Foundation Head -> "+value);
+		    this.setFoundation('H', value);
+		    callback();
+		}.bind(this))
+		.on('get', ((callback) => {this.getFoundation('H', callback)}).bind(this))
+	    
+	    this.foundationFootService
+		.getCharacteristic(Characteristic.Brightness)
+		.on('set', function (value, callback) {
+		    this.log.debug("Foundation Foot -> "+value);
+		    this.setFoundation('F', value);
+		    callback();
+		}.bind(this))
+		.on('get', ((callback) => {this.getFoundation('F', callback)}).bind(this))
+	}
+
+	return this.hasFoundation ? [informationService, this.occupancyService, this.numberService, this.foundationHeadService, this.foundationFootService] : [informationService, this.occupancyService, this.numberService]
     }
 }
 
