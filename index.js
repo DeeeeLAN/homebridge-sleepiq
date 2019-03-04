@@ -61,7 +61,9 @@ class SleepNumberPlatform {
 			if (foundationStatus.Error.Code == 404) {
 			    this.log("No foundation detected");
 			} else {
-			    this.log("Unknown error occured when checking the foundation status. See previous output for more details");
+			    this.log("Unknown error occured when checking the foundation status. See previous output for more details. Please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+			    this.log("Exiting...");
+			    process.exit(1);
 			}
 		    } else {
 			this.hasFoundation = true;
@@ -151,13 +153,16 @@ class SleepNumberPlatform {
 
 	body.on('updateData', function () {
 	    if(this.snapi.json.hasOwnProperty('Error')) {
-		if (this.snapi.json.Error.Code == 50002) {
+		if (this.snapi.json.Error.Code == 50002 || this.snapi.json.Error.Code == 401) {
 		    this.log.debug('SleepIQ authentication failed, stand by for automatic reauthentication')
 		    this.authenticate()
 		    this.key.on('update', function() {
 			this.fetchData()
 		    }.bind(this))
-		}
+		} else {
+		    this.log('SleepIQ authentication failed with an unknown error code. Please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
+		    this.log('Exiting...');
+		    process.exit(1);
 	    } else {
 		this.log.debug('SleepIQ JSON data successfully retrieved')
 		this.json.emit('updateData')
