@@ -163,6 +163,7 @@ class SleepNumberPlatform {
 		    this.log('SleepIQ authentication failed with an unknown error code. Please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
 		    this.log('Exiting...');
 		    process.exit(1);
+		}
 	    } else {
 		this.log.debug('SleepIQ JSON data successfully retrieved')
 		this.json.emit('updateData')
