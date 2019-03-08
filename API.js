@@ -36,7 +36,7 @@
  * - api.sleepSliceData() : 
  */
 
-var request = require('request')
+var request = require('request-promise-native')
 var request = request.defaults({jar: true})
 
 class API {
@@ -54,7 +54,7 @@ class API {
     }
 
     login (callback=null) {
-	request({
+	return request({
 	    method: 'PUT',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/login',
 	    body: JSON.stringify({'login': this.username, 'password': this.password})}, function(err, resp, data) {
@@ -81,7 +81,7 @@ class API {
 
     
     genURL (url) {
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/' + url,
 	    qs: {_k: this.key}}, function(err, resp, data) {
@@ -90,7 +90,7 @@ class API {
 
     
     registration () {
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/registration',
 	    qs: {_k: this.key}}, function(err, resp, data) {
@@ -105,7 +105,7 @@ class API {
 
 
     familyStatus (callback=null) {
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/familyStatus',
 	    qs: {_k: this.key}}, function(err, resp, data) {
@@ -145,7 +145,7 @@ class API {
     
 
     sleeper() {
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/sleeper',
 	    qs: {_k: this.key}}, function(err, resp, data) {
@@ -204,7 +204,7 @@ class API {
     }
 
     bed () {
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed',
 	    qs: {_k: this.key}}, function(err, resp, data) {
@@ -243,12 +243,14 @@ class API {
 
     bedStatus() {
 	// same information as familyStatus, but only for specified bed
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/status',
-	    qs: {_k: this.key}}, function(err, resp, data) {
-		this.json = JSON.parse(data)
-		console.log(JSON.stringify(this.json, null, 3))}.bind(this))
+	    qs: {_k: this.key}
+        }, function(err, resp, data) {
+	    this.json = JSON.parse(data)
+	    console.log(JSON.stringify(this.json, null, 3))
+        }.bind(this))
 
 	/*
 	  {"status":1,
@@ -273,7 +275,7 @@ class API {
 
 
     bedPauseMode () {
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/pauseMode',
 	    qs: {_k: this.key}}, function(err, resp, data) {
@@ -290,7 +292,7 @@ class API {
 
     // Side is either 'L' or 'R'. Num is any number in the range [0-100]
     sleepNumber (side, num, callback=null) {
-	request({
+	return request({
 	    method: 'PUT',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/sleepNumber',
 	    qs: {_k: this.key},
@@ -314,7 +316,7 @@ class API {
     
 
     forceIdle (callback=null) {
-	request({
+	return request({
 	    method: 'PUT',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/pump/forceIdle',
 	    qs: {_k: this.key}}, function(err, resp, data) {
@@ -332,7 +334,7 @@ class API {
     
 
     pumpStatus () {
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/pump/status',
 	    qs: {_k: this.key}}, function(err, resp, data) {
@@ -350,7 +352,7 @@ class API {
 
     // Side is either 'L' or 'R'. Num is any number in [1-6, 128]
     preset (side, num, callback=null) {
-	request({
+	return request({
 	    method: 'PUT',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/preset',
 	    qs: {_k: this.key},
@@ -375,7 +377,7 @@ class API {
 
     // Side is either 'L' or 'R'. Num is any number in the range [0-100]. Actuator is either 'F' or 'H' (foot or head).
     adjust (side, actuator, num, callback=null) {
-	request({
+	return request({
 	    method: 'PUT',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/adjustment/micro',
 	    qs: {_k: this.key},
@@ -399,7 +401,7 @@ class API {
 
 
     foundationStatus (callback=null) {
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/status',
 	    qs: {_k: this.key}
@@ -456,7 +458,7 @@ class API {
     sleeperData (date, interval) {
 	// date format: 'YYYY-MM-DD'
 	// interval format: 'D1' (1 day), 'M1' (1 month), etc.
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/sleepData',
 	    qs: {_k: this.key, date:date, interval:interval, sleeper:this.userID}}, function(err, resp, data) {
@@ -504,7 +506,7 @@ class API {
     sleepSliceData (date) {
 	// date format: 'YYYY-MM-DD'
 	// can optionally add a format:'csv' argument to get back a csv version of the data
-	request({
+	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/sleepSliceData',
 	    qs: {_k: this.key, date:date, sleeper:this.userID}}, function(err, resp, data) {
