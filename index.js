@@ -85,8 +85,7 @@ class SleepNumberPlatform {
 	        });
             } catch(err) {
                 if (!err.StatusCodeError === 404) {
-                    this.log("Promise error:", err);
-                    process.exit(1);
+                    this.log("Unknown promise error. If it persists, please report it at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new:", err);
                 }
             }
 
@@ -151,10 +150,10 @@ class SleepNumberPlatform {
                         bedSideFlex.context.type = 'flex';
 
 		        bedSideFlex.addService(Service.Lightbulb, sideName+'FlexHead');
-		        let flexHeadService = bedSide.getService(Service.Lightbulb, sideName+'FlexHead');
+		        let flexHeadService = bedSideFlex.getService(Service.Lightbulb, sideName+'FlexHead');
 		        flexHeadService.addCharacteristic(Characteristic.Brightness);
 		        bedSideFlex.addService(Service.Lightbulb, sideName+'FlexFoot');
-		        let flexFootService = bedSide.getService(Service.Lightbulb, sideName+'FlexFoot');
+		        let flexFootService = bedSideFlex.getService(Service.Lightbulb, sideName+'FlexFoot');
 		        flexFootService.addCharacteristic(Characteristic.Brightness);
 
                         let bedSideFlexAccessory = new snFlex(this.log, bedSideFlex, this.snapi);
@@ -219,9 +218,8 @@ class SleepNumberPlatform {
 	        }
 	    });
         } catch(err) {
-            if (!err.StatusCodeError === 401) {
-                this.log("Promise error:",err);
-                process.exit(1);
+            if (!err.StatusCodeError === 401 && !err.StatusCodeError === 50002) {
+                this.log("Unknown promise error. If it persists, please report it at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new:",err);
             }
         }
 
@@ -280,7 +278,7 @@ class SleepNumberPlatform {
                     bedSideNumAccessory.updateSleepNumber(sides[bedside].sleepNumber);
 
 		    if (this.hasFoundation) {
-			if (bedSide == 'leftSide') {
+			if (bedside == 'leftSide') {
 		            this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsLeftHeadPosition + ", Foot:" + flexData.fsLeftFootPosition + '}')
                             let bedSideFlexLeftAccessory = this.accessories.get(sideID+'flex');
 			    bedSideFlexLeftAccessory.updateFoundation(flexData.fsLeftHeadPosition, flexData.fsLeftFootPosition);
