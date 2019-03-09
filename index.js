@@ -89,6 +89,26 @@ class SleepNumberPlatform {
                 }
             }
 
+            if(!this.accessories.has(bedID+'privacy')) {
+		this.log("Found Bed Privacy Switch: ", bedName);
+		
+		let uuid = UUIDGen.generate(bedID+'privacy');
+		let bedPrivacy = new Accessory(bedName+'privacy', uuid);
+
+                bedPrivacy.context.sideID = bedID+'privacy';
+                bedPrivacy.context.type = 'privacy';
+                
+                bedPrivacy.addService(Service.Switch, bedName+'Privacy');
+
+		let bedPrivacyAccessory = new snPrivacy(this.log, bedPrivacy, this.snapi);
+		bedPrivacyAccessory.getServices();
+		
+		this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedPrivacy]);
+		this.accessories.set(bedID+'privacy', bedPrivacyAccessory);
+            } else {
+		this.log(bedName + " privacy already added from cache");
+	    }
+
 	    
 	    Object.keys(sides).forEach( function (bedside, index) {
 		let sideName = bedName+bedside
@@ -198,6 +218,11 @@ class SleepNumberPlatform {
             bedSideFlexAccessory.getServices();
             this.accessories.set(accessory.context.sideID, bedSideFlexAccessory);
             break;
+        case 'privacy':
+            accessory.reachable = true;
+            let bedPrivacyAccessory = new snPrivacy(this.log, accessory, this.snapi);
+            bedPrivacyAccessory.getServices();
+            this.accessories.set(accessory.context.sideID, bedPrivacyAccessory);
         default:
             this.log.debug("Unkown accessory type. Removing from accessory cache.");
             this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
@@ -247,6 +272,7 @@ class SleepNumberPlatform {
                 
                 flexData = JSON.parse(JSON.stringify(this.snapi.json));
 	    }
+
             
             this.log.debug('SleepIQ JSON data successfully retrieved')
             this.parseData(bedData, flexData);
@@ -256,11 +282,32 @@ class SleepNumberPlatform {
     }
 
     parseData (bedData, flexData) {
-	bedData.beds.forEach(function (bed, index) {
+	bedData.beds.forEach(async function (bed, index) {
 	    let bedID = bed.bedId
 	    let sides = JSON.parse(JSON.stringify(bed))
 	    delete sides.status
 	    delete sides.bedId
+
+            if (!this.accessories.has(bedID+'privacy')) {
+                this.log("New privacy switch detected.")
+                this.addAccessories();
+                return
+            } else {
+                this.snapi.bedID = bedID;
+                
+                await this.snapi.bedPauseMode( (data, err=null) => {
+                    if (err) {
+                        this.log.debug(data, JSON.stringify(err));
+                    } else {
+                        this.log.debug("Privacy mode GET results:", data);
+                    }
+                });
+                
+                let privacyData = JSON.parse(JSON.stringify(this.snapi.json));
+                this.log.debug('SleepIQ Privacy Mode: ' + privacyData.pauseMode);
+                let bedPrivacyAccessory = this.accessories.get(bedID+'privacy');
+                bedPrivacyAccessory.updatePrivacy(privacyData.pauseMode);
+            }
 
 	    Object.keys(sides).forEach(function (bedside, index) {
 		let sideID = bedID+bedside
@@ -481,5 +528,61 @@ class snFlex {
     }
 }
 
+class snPrivacy {
+    constructor (log, accessory, snapi) {
+	this.log = log;
+	this.accessory = accessory;
+	this.snapi = snapi;
+        this.privacy = 'off';
+
+        this.privacyService = this.accessory.getService(Service.Switch);
+        
+	this.getPrivacy = this.getPrivacy.bind(this);
+	this.setPrivacy = this.setPrivacy.bind(this);
+	this.updatePrivacy = this.updatePrivacy.bind(this);
+    }
+
+    // Send a new privacy value to the bed
+    setPrivacy (value) {
+	this.log.debug('Setting privacy mode to', value);
+	this.snapi.setBedPauseMode(value ? 'on' : 'off', (data, err=null) => {
+	    if (err) {
+		this.log.debug(data, err);
+	    } else {
+		this.log.debug("privacy PUT result:", data)
+	    }
+	});
+    }
+
+    // Keep privacy mode updated with external changes through sleepIQ app
+    updatePrivacy(value) {
+	this.privacy = value;
+    }
+
+    getPrivacy (callback) {
+	return callback(null, this.privacy == 'on' ? true : false);
+    }
+
+    
+    getServices () {
+	
+	let informationService = this.accessory.getService(Service.AccessoryInformation);
+	informationService
+	    .setCharacteristic(Characteristic.Manufacturer, "Sleep Number")
+	    .setCharacteristic(Characteristic.Model, "SleepIQ")
+	    .setCharacteristic(Characteristic.SerialNumber, "360");
+
+	this.privacyService
+	    .getCharacteristic(Characteristic.On)
+	    .on('set', function (value, callback) {
+		this.log.debug("Privacy -> "+value);
+		this.setPrivacy(value);
+		callback();
+	    }.bind(this))
+	    .on('get', this.getPrivacy);
+
+	return [informationService, this.privacyService]
+    }
+}
 
 

@@ -17,23 +17,24 @@
  *| > api = new API('username','password')
  * 
  * List of class methods:
- * - api.login()          : required first
- * - api.genURL()         : allows for passing any url extension in
- * - api.registration()   : 
- * - api.familyStatus()   : where the useful homekit information is
- * - api.sleeper()        : 
- * - api.bed()            : 
+ * - api.login()           : required first
+ * - api.genURL()          : allows for passing any url extension in
+ * - api.registration()    : 
+ * - api.familyStatus()    : where the useful homekit information is
+ * - api.sleeper()         : 
+ * - api.bed()             : 
  * 
  * The next five require familyStatus() or bed() to be called first to get a bedID
- * - api.bedStatus()      : 
- * - api.bedPauseMode()   : 
- * - api.sleepNumber()    : Used to set the sleep number for a side
- * - api.forceIdle()      : Stops the pump
- * - api.pumpStatus()     : 
+ * - api.bedStatus()       : 
+ * - api.bedPauseMode()    : Reads the privacy mode setting of the bed
+ * - api.setBedPauseMode() : Sets the privacy mode setting of the bed
+ * - api.sleepNumber()     : Used to set the sleep number for a side
+ * - api.forceIdle()       : Stops the pump
+ * - api.pumpStatus()      : 
  *
  * The last two provide bulk sleep data. Could be fun to import into a spreadsheet
- * - api.sleeperData()    : 
- * - api.sleepSliceData() : 
+ * - api.sleeperData()     : 
+ * - api.sleepSliceData()  : 
  */
 
 var request = require('request-promise-native')
@@ -273,19 +274,52 @@ class API {
 	*/
     }
 
-
-    bedPauseMode () {
+    bedPauseMode (callback=null) {
 	return request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/pauseMode',
 	    qs: {_k: this.key}}, function(err, resp, data) {
+	 	if (err) {
+		    return callback("Error: pauseMode GET request returned undefined. Error:",err);
+		}
+		if (data) {
+		    this.json = JSON.parse(data)
+		    if (callback) {
+			callback(data);
+		    }
+		    // console.log(JSON.stringify(this.json, null, 3))
+		} 
+            }.bind(this))
+	/*
+	  {"accountId":"",
+	  "bedId":"",
+	  "pauseMode":"off"} // pauseMode is privacy mode in the app
+	*/
+    }
+
+    // Mode is either 'on' or 'off'
+    setBedPauseMode (mode, callback=null) {
+	return request({
+	    method: 'PUT',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/pauseMode',
+	    qs: {_k: this.key, mode: mode}
+        }, function(err, resp, data) {
+	    if (err) {
+		return callback("Error: pauseMode PUT request returned undefined. Error:",err);
+	    }
+	    if (data) {
 		this.json = JSON.parse(data)
-		console.log(JSON.stringify(this.json, null, 3))}.bind(this))
+		if (callback) {
+		    callback(data);
+		}
+		// console.log(JSON.stringify(this.json, null, 3))
+	    } 
+        }.bind(this))
 
 	/*
 	  {"accountId":"",
 	  "bedId":"",
-	  "pauseMode":"off"} // not sure what pauseMode represents
+	  "pauseMode":"off"} // pauseMode is privacy mode in the app
 	*/
     }
 
