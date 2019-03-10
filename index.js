@@ -35,7 +35,7 @@ class SleepNumberPlatform {
         // await this.authenticate();
         // await this.snapi.
         // await this.addAccessories();
-        setInterval(this.fetchData.bind(this), this.refreshTime) // continue to grab data every few seconds
+        setInterval(this.fetchData.bind(this), this.refreshTime); // continue to grab data every few seconds
     }
 
     async authenticate () {
@@ -221,6 +221,7 @@ class SleepNumberPlatform {
             let bedPrivacyAccessory = new snPrivacy(this.log, accessory, this.snapi);
             bedPrivacyAccessory.getServices();
             this.accessories.set(accessory.context.sideID, bedPrivacyAccessory);
+            break;
         default:
             this.log.debug("Unkown accessory type. Removing from accessory cache.");
             this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
@@ -285,7 +286,7 @@ class SleepNumberPlatform {
 	    delete sides.bedId
 
             if (!this.accessories.has(bedID+'privacy')) {
-                this.log("New privacy switch detected.")
+                this.log("New privacy switch detected.");
                 this.addAccessories();
                 return
             } else {

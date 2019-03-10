@@ -489,6 +489,8 @@ class API {
 
     
 
+    
+
     sleeperData (date, interval) {
 	// date format: 'YYYY-MM-DD'
 	// interval format: 'D1' (1 day), 'M1' (1 month), etc.
