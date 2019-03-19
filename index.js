@@ -127,7 +127,7 @@ class SleepNumberPlatform {
 		    this.log("Found BedSide Occupancy Sensor: ", sideName);
 		    
 		    let uuid = UUIDGen.generate(sideID+'occupancy');
-		    let bedSideOcc = new Accessory(sideName, uuid);
+		    let bedSideOcc = new Accessory(sideName+'occupancy', uuid);
 
                     bedSideOcc.context.sideID = sideID+'occupancy';
                     bedSideOcc.context.type = 'occupancy';
@@ -147,7 +147,7 @@ class SleepNumberPlatform {
                     this.log("Found BedSide Number Control: ", sideName);
 
                     let uuid = UUIDGen.generate(sideID+'number');
-                    let bedSideNum = new Accessory(sideName, uuid);
+                    let bedSideNum = new Accessory(sideName+'number', uuid);
 
                     bedSideNum.context.side = bedside[0].toUpperCase();
                     bedSideNum.context.sideID = sideID+'number';
@@ -172,7 +172,7 @@ class SleepNumberPlatform {
                         this.log("Found BedSide Flex Foundation: ", sideName);
 
                         let uuid = UUIDGen.generate(sideID+'flex');
-                        let bedSideFlex = new Accessory(sideName, uuid);
+                        let bedSideFlex = new Accessory(sideName+'flex', uuid);
 
                         bedSideFlex.context.side = bedside[0].toUpperCase();
                         bedSideFlex.context.sideID = sideID+'flex';
@@ -208,41 +208,50 @@ class SleepNumberPlatform {
 
     // called during setup, restores from cache (reconfigure instead of create new)
     configureAccessory (accessory) {
-	this.log.debug("Configuring Accessory: ", accessory.displayName, "UUID: ", accessory.UUID);
+	this.log.debug("Configuring Cached Accessory: ", accessory.displayName, "UUID: ", accessory.UUID);
+
+        if (accessory.displayName.slice(-4) === 'Side') {
+            this.log("Stale accessory. Removing");
+            this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
+            return;
+        }            
+        
         if (Array.from(this.accessories.values()).map(a => a.accessory.displayName).includes(accessory.displayName)) {
             this.log("Duplicate accessory detected in cache: ", accessory.displayName, "If this appears incorrect, file a ticket on github. Removing duplicate accessory from cache.");
-            this.log("You might need to restart homebridge to clear out the old data, especially if the accessory UUID got duplicated");
+            this.log("You might need to restart homebridge to clear out the old data, especially if the accessory UUID got duplicated.");
+            this.log("If the issue persists, try clearing your accessory cache.");
             this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
-        } else {
-            switch(accessory.context.type) {
-            case 'occupancy':
-                accessory.reachable = true;
-                let bedSideOccAccessory = new snOccupancy(this.log, accessory);
-                bedSideOccAccessory.getServices();
-                this.accessories.set(accessory.context.sideID, bedSideOccAccessory);
-                break;
-            case 'number':
-                accessory.reachable = true;
-                let bedSideNumAccessory = new snNumber(this.log, accessory, this.snapi);
-                bedSideNumAccessory.getServices();
-                this.accessories.set(accessory.context.sideID, bedSideNumAccessory);
-                break;
-            case 'flex':
-                accessory.reachable = true;
-                let bedSideFlexAccessory = new snOccupancy(this.log, accessory, this.snapi);
-                bedSideFlexAccessory.getServices();
-                this.accessories.set(accessory.context.sideID, bedSideFlexAccessory);
-                break;
-            case 'privacy':
-                accessory.reachable = true;
-                let bedPrivacyAccessory = new snPrivacy(this.log, accessory, this.snapi);
-                bedPrivacyAccessory.getServices();
-                this.accessories.set(accessory.context.sideID, bedPrivacyAccessory);
-                break;
-            default:
-                this.log.debug("Unkown accessory type. Removing from accessory cache.");
-                this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
-            }
+            return;
+        }
+        
+        switch(accessory.context.type) {
+        case 'occupancy':
+            accessory.reachable = true;
+            let bedSideOccAccessory = new snOccupancy(this.log, accessory);
+            bedSideOccAccessory.getServices();
+            this.accessories.set(accessory.context.sideID, bedSideOccAccessory);
+            break;
+        case 'number':
+            accessory.reachable = true;
+            let bedSideNumAccessory = new snNumber(this.log, accessory, this.snapi);
+            bedSideNumAccessory.getServices();
+            this.accessories.set(accessory.context.sideID, bedSideNumAccessory);
+            break;
+        case 'flex':
+            accessory.reachable = true;
+            let bedSideFlexAccessory = new snOccupancy(this.log, accessory, this.snapi);
+            bedSideFlexAccessory.getServices();
+            this.accessories.set(accessory.context.sideID, bedSideFlexAccessory);
+            break;
+        case 'privacy':
+            accessory.reachable = true;
+            let bedPrivacyAccessory = new snPrivacy(this.log, accessory, this.snapi);
+            bedPrivacyAccessory.getServices();
+            this.accessories.set(accessory.context.sideID, bedPrivacyAccessory);
+            break;
+        default:
+            this.log.debug("Unkown accessory type. Removing from accessory cache.");
+            this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
         }
     }
     
