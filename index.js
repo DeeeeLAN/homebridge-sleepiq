@@ -220,7 +220,7 @@ class SleepNumberPlatform {
             this.log("Duplicate accessory detected in cache: ", accessory.displayName, "If this appears incorrect, file a ticket on github. Removing duplicate accessory from cache.");
             this.log("You might need to restart homebridge to clear out the old data, especially if the accessory UUID got duplicated.");
             this.log("If the issue persists, try clearing your accessory cache.");
-            this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
+//            this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
             return;
         }
         
