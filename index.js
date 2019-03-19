@@ -208,7 +208,7 @@ class SleepNumberPlatform {
 
     // called during setup, restores from cache (reconfigure instead of create new)
     configureAccessory (accessory) {
-	this.log.debug("Configuring Cached Accessory: ", accessory.displayName, "UUID: ", accessory.UUID);
+	this.log("Configuring Cached Accessory: ", accessory.displayName, "UUID: ", accessory.UUID);
 
         if (accessory.displayName.slice(-4) === 'Side') {
             this.log("Stale accessory. Removing");
