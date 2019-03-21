@@ -34,7 +34,7 @@ class SleepNumberPlatform {
     async didFinishLaunching () {
         await this.authenticate();
         await this.addAccessories();
-        setInterval(this.fetchData.bind(this), this.refreshTime); // continue to grab data every few seconds
+//        setInterval(this.fetchData.bind(this), this.refreshTime); // continue to grab data every few seconds
     }
 
     async authenticate () {
@@ -121,79 +121,81 @@ class SleepNumberPlatform {
 
 	    
 	    Object.keys(sides).forEach( function (bedside, index) {
-		let sideName = bedName+bedside
-		let sideID = bedID+bedside
-		if(!this.accessories.has(sideID+'occupancy')) {
-		    this.log("Found BedSide Occupancy Sensor: ", sideName);
-		    
-		    let uuid = UUIDGen.generate(sideID+'occupancy');
-		    let bedSideOcc = new Accessory(sideName+'occupancy', uuid);
+                try {
+		    let sideName = bedName+bedside
+		    let sideID = bedID+bedside
+		    if(!this.accessories.has(sideID+'occupancy')) {
+		        this.log("Found BedSide Occupancy Sensor: ", sideName);
+		        
+		        let uuid = UUIDGen.generate(sideID+'occupancy');
+		        let bedSideOcc = new Accessory(sideName+'occupancy', uuid);
 
-                    bedSideOcc.context.sideID = sideID+'occupancy';
-                    bedSideOcc.context.type = 'occupancy';
-                    
-                    bedSideOcc.addService(Service.OccupancySensor, sideName+'Occupancy');
+                        bedSideOcc.context.sideID = sideID+'occupancy';
+                        bedSideOcc.context.type = 'occupancy';
+                        
+                        bedSideOcc.addService(Service.OccupancySensor, sideName+'Occupancy');
 
-		    let bedSideOccAccessory = new snOccupancy(this.log, bedSideOcc);
-		    bedSideOccAccessory.getServices();
-		    
-		    this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideOcc]);
-		    this.accessories.set(sideID+'occupancy', bedSideOccAccessory);
-                } else {
-		    this.log(sideName + " occupancy already added from cache");
-		}
-
-                if (!this.accessories.has(sideID+'number')) {
-                    this.log("Found BedSide Number Control: ", sideName);
-
-                    let uuid = UUIDGen.generate(sideID+'number');
-                    let bedSideNum = new Accessory(sideName+'number', uuid);
-
-                    bedSideNum.context.side = bedside[0].toUpperCase();
-                    bedSideNum.context.sideID = sideID+'number';
-                    bedSideNum.context.sideName = sideName;
-                    bedSideNum.context.type = 'number';
-
-                    bedSideNum.addService(Service.Lightbulb, sideName+'Number');
-		    let numberService = bedSideNum.getService(Service.Lightbulb, sideName+'Number');
-		    numberService.addCharacteristic(Characteristic.Brightness);
-
-                    let bedSideNumAccessory = new snNumber(this.log, bedSideNum, this.snapi);
-                    bedSideNumAccessory.getServices();
-
-                    this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideNum])
-		    this.accessories.set(sideID+'number', bedSideNumAccessory);
-                } else {
-		    this.log(sideName + " number control already added from cache");
-		}
-
-                if (this.hasFoundation) {
-                    if (!this.accessories.has(sideID+'flex')) {
-                        this.log("Found BedSide Flex Foundation: ", sideName);
-
-                        let uuid = UUIDGen.generate(sideID+'flex');
-                        let bedSideFlex = new Accessory(sideName+'flex', uuid);
-
-                        bedSideFlex.context.side = bedside[0].toUpperCase();
-                        bedSideFlex.context.sideID = sideID+'flex';
-                        bedSideFlex.context.sideName = sideName;
-                        bedSideFlex.context.type = 'flex';
-
-		        bedSideFlex.addService(Service.Lightbulb, sideName+'FlexHead');
-		        let flexHeadService = bedSideFlex.getService(Service.Lightbulb, sideName+'FlexHead');
-		        flexHeadService.addCharacteristic(Characteristic.Brightness);
-		        bedSideFlex.addService(Service.Lightbulb, sideName+'FlexFoot');
-		        let flexFootService = bedSideFlex.getService(Service.Lightbulb, sideName+'FlexFoot');
-		        flexFootService.addCharacteristic(Characteristic.Brightness);
-
-                        let bedSideFlexAccessory = new snFlex(this.log, bedSideFlex, this.snapi);
-                        bedSideFlexAccessory.getServices();
-
-                        this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideFlex])
-		        this.accessories.set(sideID+'flex', bedSideFlexAccessory)
+		        let bedSideOccAccessory = new snOccupancy(this.log, bedSideOcc);
+		        bedSideOccAccessory.getServices();
+		        
+		        this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideOcc]);
+		        this.accessories.set(sideID+'occupancy', bedSideOccAccessory);
                     } else {
-		        this.log(sideName + " flex foundation already added from cache")
+		        this.log(sideName + " occupancy already added from cache");
 		    }
+
+                    if (!this.accessories.has(sideID+'number')) {
+                        this.log("Found BedSide Number Control: ", sideName);
+
+                        let uuid = UUIDGen.generate(sideID+'number');
+                        let bedSideNum = new Accessory(sideName+'number', uuid);
+
+                        bedSideNum.context.side = bedside[0].toUpperCase();
+                        bedSideNum.context.sideID = sideID+'number';
+                        bedSideNum.context.sideName = sideName;
+                        bedSideNum.context.type = 'number';
+
+                        bedSideNum.addService(Service.Lightbulb, sideName+'Number');
+		        let numberService = bedSideNum.getService(Service.Lightbulb, sideName+'Number');
+		        numberService.addCharacteristic(Characteristic.Brightness);
+
+                        let bedSideNumAccessory = new snNumber(this.log, bedSideNum, this.snapi);
+                        bedSideNumAccessory.getServices();
+
+                        this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideNum])
+		        this.accessories.set(sideID+'number', bedSideNumAccessory);
+                    } else {
+		        this.log(sideName + " number control already added from cache");
+		    }
+
+                    if (this.hasFoundation) {
+                        if (!this.accessories.has(sideID+'flex')) {
+                            this.log("Found BedSide Flex Foundation: ", sideName);
+
+                            let uuid = UUIDGen.generate(sideID+'flex');
+                            let bedSideFlex = new Accessory(sideName+'flex', uuid);
+
+                            bedSideFlex.context.side = bedside[0].toUpperCase();
+                            bedSideFlex.context.sideID = sideID+'flex';
+                            bedSideFlex.context.sideName = sideName;
+                            bedSideFlex.context.type = 'flex';
+
+		            bedSideFlex.addService(Service.Lightbulb, sideName+'FlexHead', 'head')
+		                .addCharacteristic(Characteristic.Brightness);
+		            bedSideFlex.addService(Service.Lightbulb, sideName+'FlexFoot', 'foot')
+		                .addCharacteristic(Characteristic.Brightness);
+
+                            let bedSideFlexAccessory = new snFlex(this.log, bedSideFlex, this.snapi);
+                            bedSideFlexAccessory.getServices();
+
+                            this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideFlex])
+                            this.accessories.set(sideID+'flex', bedSideFlexAccessory)
+                        } else {
+		            this.log(sideName + " flex foundation already added from cache")
+		        }
+                    }
+                } catch (err) {
+                    this.log(err);
                 }
 
 	    }.bind(this))
@@ -220,7 +222,7 @@ class SleepNumberPlatform {
             this.log("Duplicate accessory detected in cache: ", accessory.displayName, "If this appears incorrect, file a ticket on github. Removing duplicate accessory from cache.");
             this.log("You might need to restart homebridge to clear out the old data, especially if the accessory UUID got duplicated.");
             this.log("If the issue persists, try clearing your accessory cache.");
-//            this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
+            this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
             return;
         }
         
@@ -239,7 +241,7 @@ class SleepNumberPlatform {
             break;
         case 'flex':
             accessory.reachable = true;
-            let bedSideFlexAccessory = new snOccupancy(this.log, accessory, this.snapi);
+            let bedSideFlexAccessory = new snFlex(this.log, accessory, this.snapi);
             bedSideFlexAccessory.getServices();
             this.accessories.set(accessory.context.sideID, bedSideFlexAccessory);
             break;
@@ -415,7 +417,7 @@ class snNumber {
 	this.sleepNumber = 50;
 	this.sideName = this.accessory.context.sideName;
         
-	this.numberService = this.accessory.getService(Service.Lightbulb, this.sideName+'Number');
+	this.numberService = this.accessory.getService(this.sideName+'Number');
 	this.numberService.setCharacteristic(Characteristic.On, true);
 	
 
@@ -486,9 +488,9 @@ class snFlex {
 	this.footPosition = 0;
 	this.sideName = this.accessory.context.sideName;
         
-	this.foundationHeadService = this.accessory.getService(Service.Lightbulb, this.sideName+'FoundationHead');
-	this.foundationFootService = this.accessory.getService(Service.Lightbulb, this.sideName+'FoundationFoot');
-
+	this.foundationHeadService = this.accessory.getService(this.sideName+'FlexHead');
+	this.foundationFootService = this.accessory.getService(this.sideName+'FlexFoot');
+        this.log(this.foundationHeadService, this.foundationFootService)
         this.setFoundation = this.setFoundation.bind(this);
         this.updateFoundation = this.updateFoundation.bind(this);
         this.getFoundation = this.getFoundation.bind(this);
