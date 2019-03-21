@@ -433,7 +433,6 @@ class API {
 	*/
     }
 
-
     foundationStatus (callback=null) {
 	return request({
 	    method: 'GET',
@@ -487,9 +486,71 @@ class API {
 	*/
     }
 
-    
+    // num must be between 1 and 4, setting is 0 or 1
+    outlet (num, setting) {
+        return request({
+            method: 'GET',
+            uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/outlet',
+            qs: {_k: this.key, outletId: num, /*bedId: this.bedID, outlet: num, */setting: setting, /*timer: null*/}}, function(err, resp, data) {
+                this.json = JSON.parse(data)
+                console.log(JSON.stringify(this.json, null, 3))}.bind(this))
 
-    
+        /*
+          "Error": {
+              "Code": 404,
+              "Message": "Foundation is not connected or not working properly"
+          }
+        */
+    }
+
+    // Side is 'L' or 'R',   head, massage, and foot are all 0 or 1
+    motion (side, head, massage, foot, callback=null) {
+	return request({
+	    method: 'PUT',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/motion',
+	    qs: {_k: this.key},
+	    body: JSON.stringify({side: side, headMotion: head, massageMotion: massage, footMotion: foot})
+	},
+		function(err, resp, data) {
+		    if (err) {
+			return callback("motion PUT failed. Error:",err);
+		    }
+		    this.json = JSON.parse(data);
+		    if (callback) {
+			callback(data);
+		    }
+		    // console.log(JSON.stringify(this.json, null, 3))
+		}.bind(this))
+	
+	/*
+	  {}
+	*/
+    }
+
+    // Side is 'L' or 'R',   head, waveMode, and foot are all 0 or 1
+    adjustment (side, head, waveMode, foot, callback=null) {
+	return request({
+	    method: 'PUT',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/adjustment',
+	    qs: {_k: this.key},
+	    body: JSON.stringify({side: side, headMassageMotor: head, massageWaveMode: waveMode, footMassageMotor: foot, massageTimer: 15})
+	},
+		function(err, resp, data) {
+		    if (err) {
+			return callback("adjustment PUT failed. Error:",err);
+		    }
+		    this.json = JSON.parse(data);
+		    if (callback) {
+			callback(data);
+		    }
+		    // console.log(JSON.stringify(this.json, null, 3))
+		}.bind(this))
+	
+	/*
+	  {}
+	*/
+    }
+
 
     sleeperData (date, interval) {
 	// date format: 'YYYY-MM-DD'
