@@ -1,6 +1,6 @@
 {
     "name": "homebridge-sleepiq",
-    "version": "3.2.7",
+    "version": "3.2.8",
     "description": "Sleep Number SleepIQ plugin for homebridge: https://github.com/nfarina/homebridge",
     "license": "ISC",
     "keywords": [
