@@ -490,7 +490,7 @@ class snFlex {
         
 	this.foundationHeadService = this.accessory.getService(this.sideName+'FlexHead');
 	this.foundationFootService = this.accessory.getService(this.sideName+'FlexFoot');
-        this.log(this.foundationHeadService, this.foundationFootService)
+
         this.setFoundation = this.setFoundation.bind(this);
         this.updateFoundation = this.updateFoundation.bind(this);
         this.getFoundation = this.getFoundation.bind(this);
