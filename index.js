@@ -34,7 +34,7 @@ class SleepNumberPlatform {
     async didFinishLaunching () {
         await this.authenticate();
         await this.addAccessories();
-//        setInterval(this.fetchData.bind(this), this.refreshTime); // continue to grab data every few seconds
+        setInterval(this.fetchData.bind(this), this.refreshTime); // continue to grab data every few seconds
     }
 
     async authenticate () {
