@@ -13,6 +13,13 @@ module.exports = function (homebridge) {
 class SleepNumberPlatform {
     constructor (log, config, api) {
 	this.log = log;
+
+	if (!config) {
+	    log.warn("Ignoring SleepIQ setup because it is not configured.");
+	    this.disabled = true;
+	    return;
+	}
+        
 	this.config = config;
 	this.username = config["username"];
 	this.password = config["password"];
@@ -210,6 +217,10 @@ class SleepNumberPlatform {
 
     // called during setup, restores from cache (reconfigure instead of create new)
     configureAccessory (accessory) {
+        if (this.disabled) {
+            return false;
+        }
+        
 	this.log("Configuring Cached Accessory: ", accessory.displayName, "UUID: ", accessory.UUID);
 
         if (accessory.displayName.slice(-4) === 'Side') {
