@@ -126,28 +126,31 @@ class SleepNumberPlatform {
 		this.log(bedName + " privacy already added from cache");
 	    }
 
+		const registerOccupancySensor = (sideName, sideID) => {
+			this.log("Found BedSide Occupancy Sensor: ", sideName);
+		        
+			let uuid = UUIDGen.generate(sideID+'occupancy');
+			let bedSideOcc = new Accessory(sideName+'occupancy', uuid);
+
+					bedSideOcc.context.sideID = sideID+'occupancy';
+					bedSideOcc.context.type = 'occupancy';
+					
+					bedSideOcc.addService(Service.OccupancySensor, sideName+'Occupancy');
+
+			let bedSideOccAccessory = new snOccupancy(this.log, bedSideOcc);
+			bedSideOccAccessory.getServices();
+			
+			this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideOcc]);
+			this.accessories.set(sideID+'occupancy', bedSideOccAccessory);
+		}
 	    
 	    Object.keys(sides).forEach( function (bedside, index) {
                 try {
 		    let sideName = bedName+bedside
 		    let sideID = bedID+bedside
 		    if(!this.accessories.has(sideID+'occupancy')) {
-		        this.log("Found BedSide Occupancy Sensor: ", sideName);
-		        
-		        let uuid = UUIDGen.generate(sideID+'occupancy');
-		        let bedSideOcc = new Accessory(sideName+'occupancy', uuid);
-
-                        bedSideOcc.context.sideID = sideID+'occupancy';
-                        bedSideOcc.context.type = 'occupancy';
-                        
-                        bedSideOcc.addService(Service.OccupancySensor, sideName+'Occupancy');
-
-		        let bedSideOccAccessory = new snOccupancy(this.log, bedSideOcc);
-		        bedSideOccAccessory.getServices();
-		        
-		        this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideOcc]);
-		        this.accessories.set(sideID+'occupancy', bedSideOccAccessory);
-                    } else {
+				registerOccupancySensor(sideName, sideID);
+            } else {
 		        this.log(sideName + " occupancy already added from cache");
 		    }
 
@@ -205,7 +208,16 @@ class SleepNumberPlatform {
                     this.log(err);
                 }
 
-	    }.bind(this))
+		}.bind(this))
+		
+		const anySideID = bedID + "anySide";
+		const anySideName = bedName + "anySide";
+		if(!this.accessories.has(anySideID+'occupancy')) {
+			// register 'any' side occupancy sensor
+			registerOccupancySensor(anySideName, anySideID);
+		} else {
+			this.log(anySideName + " occupancy already added from cache");
+		}
 	}.bind(this))
     }
     
@@ -346,6 +358,8 @@ class SleepNumberPlatform {
                 bedPrivacyAccessory.updatePrivacy(privacyData.pauseMode);
             }
 
+		let anySideOccupied = false;
+
 	    Object.keys(sides).forEach(function (bedside, index) {
 		let sideID = bedID+bedside
 		if(!this.accessories.has(sideID+'occupancy') || !this.accessories.has(sideID+'number')) {
@@ -353,9 +367,11 @@ class SleepNumberPlatform {
 		    this.addAccessories();
 		    return
 		} else {
-		    this.log.debug('SleepIQ Occupancy Data: {' + bedside + ':' + sides[bedside].isInBed + '}')
+			let thisSideOccupied = sides[bedside].isInBed;
+		    this.log.debug('SleepIQ Occupancy Data: {' + bedside + ':' + thisSideOccupied + '}')
                     let bedSideOccAccessory = this.accessories.get(sideID+'occupancy');
-		    bedSideOccAccessory.setOccupancyDetected(sides[bedside].isInBed);
+			bedSideOccAccessory.setOccupancyDetected(thisSideOccupied);
+			anySideOccupied = anySideOccupied || thisSideOccupied;
 		    
                     this.log.debug('SleepIQ Sleep Number: {' + bedside + ':' + sides[bedside].sleepNumber + '}')
                     let bedSideNumAccessory = this.accessories.get(sideID+'number');
@@ -373,7 +389,11 @@ class SleepNumberPlatform {
 			}
 		    }
 		}
-	    }.bind(this))
+		}.bind(this))
+		
+		let anySideOccAccessory = this.accessories.get(bedID + 'anySide' + 'occupancy');
+		anySideOccAccessory.setOccupancyDetected(anySideOccupied);
+
 	}.bind(this))
     }
 
