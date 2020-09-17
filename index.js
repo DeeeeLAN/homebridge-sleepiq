@@ -65,14 +65,16 @@ class SleepNumberPlatform {
     try {
       await this.snapi.familyStatus( (data, err=null) => {
         if (err) {
-          this.log.debug(data, JSON.stringify(err));
+          this.log.debug(data, err);
         } else {
           this.log.debug("Family Status GET results:", data);
         }
       });
     } catch(err) {
-      if (!(err.StatusCodeError === 401) && !(err.StatusCodeError === 50002)) {
-        this.log("Failed to retrieve family status:",err);
+      if (typeof err === 'string' || err instanceof String)
+        err = JSON.parse(err)
+      if (!(err.statusCode === 401) && !(err.statusCode === 50002)) {
+        this.log("Failed to retrieve family status:",JSON.stringify(err));
       }
     }
     this.snapi.json.beds.forEach( async function (bed, index) {
@@ -84,7 +86,7 @@ class SleepNumberPlatform {
       
       var foundationStatus;
       try {
-        await this.snapi.foundationStatus((data, err=null) => {
+        await this.snapi.foundationStatus(((data, err=null) => {
           if (err) {
             this.log.debug(data, err);
           } else {
@@ -100,10 +102,12 @@ class SleepNumberPlatform {
               this.hasFoundation = true;
             }
           }
-        }).bind(this);
+        }).bind(this));
       } catch(err) {
-        if (!(err.StatusCodeError === 404)) {
-          this.log("Failed to retrieve foundation status:", err);
+        if (typeof err === 'string' || err instanceof String)
+          err = JSON.parse(err)
+        if (!(err.statusCode === 404)) {
+          this.log("Failed to retrieve foundation status:", JSON.stringify(err));
         }
       }
       
@@ -206,7 +210,7 @@ class SleepNumberPlatform {
             }
           }
         } catch (err) {
-          this.log(err);
+          this.log('Error when setting up bedsides:',err);
         }
         
       }.bind(this))
@@ -287,14 +291,16 @@ class SleepNumberPlatform {
     try {
       await this.snapi.familyStatus( (data, err=null) => {
         if (err) {
-          this.log.debug(data, JSON.stringify(err));
+          this.log.debug(data, err);
         } else {
           this.log.debug("Family Status GET results:", data);
         }
       });
     } catch(err) {
-      if (!err.StatusCodeError === 401 && !err.StatusCodeError === 50002) {
-        this.log("Unknown promise error. If it persists, please report it at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new:",err);
+      if (typeof err === 'string' || err instanceof String)
+        err = JSON.parse(err)
+      if (!err.statusCode === 401 && !err.statusCode === 50002) {
+        this.log("Unknown promise error. If it persists, please report it at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new:",JSON.stringify(err));
       }
     }
     
@@ -313,7 +319,7 @@ class SleepNumberPlatform {
         try {
           await this.snapi.foundationStatus( (data, err=null) => {
             if (err) {
-              this.log.debug(data, JSON.stringify(err));
+              this.log.debug(data, err);
             } else {
               this.log.debug("Foundation Status GET results:", data);
             }
@@ -351,7 +357,7 @@ class SleepNumberPlatform {
           try {
             await this.snapi.bedPauseMode( (data, err=null) => {
               if (err) {
-                this.log.debug(data, JSON.stringify(err));
+                this.log.debug(data, err);
               } else {
                 this.log.debug("Privacy mode GET results:", data);
               }
