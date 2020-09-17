@@ -11,7 +11,7 @@ See [API.js](API.js) for my attempt at documenting the SleepIQ API, based on [ht
 
 1. Install homebridge using: `npm install -g homebridge`
 2. Install this plugin using: `npm install -g homebridge-sleepiq`
-3. Update your configuration file. See the `sample-config.json` snippet below.
+3. Update your configuration file. See the `sample-config.json` snippet below. If you use Homebridge UI, you can change settings through the UI instead. 
 
 # Configuration
 
@@ -20,8 +20,8 @@ Configuration sample:
  ```
 "platforms": [
 		{
-			"platform"    : "SleepNumber",
-			"username"    : "Your SleepIQ Email Address",
+			"platform"    : "SleepIQ",
+			"email"       : "Your SleepIQ Email Address",
 			"password"    : "Your SleepIQ Password",
 			"refreshTime" : 5,
 			"sendDelay"   : 2,
@@ -32,10 +32,11 @@ Configuration sample:
 
 Fields:
 
-* "platform": Must always be "SleepNumber" (required)
-* "username": SleepIQ account email address
+* "platform": Must always be "SleepIQ" (required)
+* "email": SleepIQ account email address
 * "Password": SleepIQ account password
 * "refreshTime": Optional number of seconds between each network request. If not specified, defaults to 5 seconds. I have found little value in going below 5 seconds. The base only updates every 2-3 seconds, and the plugin isn't always in sync with that. Increasing the limit would cause the occupancy to not update as quickly, but it would greatly decrease the number of network requests made.
+"sendDelay": Optional number of seconds to 'debounce' your sleep number updates. This is to allow you to adjust the slider in Homekit without the bed constantly trying to change to the intermediate numbers and possibly ending up on a wrong number in the end. It will wait until the number of seconds specified in sendDelay after no more changes were made before sending an updated value to your bed. Defaults to 2, but you can play around with setting it lower or higher.
 # Issues/Future Work
 * Foundation settings (If you have a flexfit foundation, please reach out to help, I need data from all the different bases):
   * Verify different configurations (split head/split foot, split head/single foot, single head/single foot)
@@ -44,5 +45,5 @@ Fields:
   * ?
 * Allow for different refresh times based on the time of day
 * Verify everything still works will twin/full beds (If anybody has one, contact me)
-* Fix support for multiple beds (Does anybody have multiple beds?)
+* Verify support for multiple beds (Does anybody have multiple beds?)
 * File a ticket or submit a pull request if you find any problems!
