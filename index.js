@@ -615,6 +615,16 @@ class snFlex {
       callback();
     }.bind(this))
     .on('get', (callback) => this.getFoundation('H', callback))
+
+    this.foundationHeadService
+    .getCharacteristic(Characteristic.On)
+    .on('change', function (oldValue, newValue, callback) {
+      if (!newValue) {
+        this.log.debug("Foundation Head -> "+newValue)
+        this.setFoundation('H', newValue);
+      }
+      callback();
+    }.bind(this));
     
     this.foundationFootService
     .getCharacteristic(Characteristic.Brightness)
@@ -624,6 +634,16 @@ class snFlex {
       callback();
     }.bind(this))
     .on('get', (callback) => this.getFoundation('F', callback))
+
+    this.foundationFootService
+    .getCharacteristic(Characteristic.On)
+    .on('change', function (oldValue, newValue, callback) {
+      if (!newValue) {
+        this.log.debug("Foundation Foot -> "+newValue)
+        this.setFoundation('F', newValue);
+      }
+      callback();
+    }.bind(this));
     
     return [informationService, this.foundationHeadService, this.foundationFootService]
   }
