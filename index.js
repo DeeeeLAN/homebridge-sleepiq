@@ -7,7 +7,7 @@ module.exports = function (homebridge) {
   Service = homebridge.hap.Service
   Characteristic = homebridge.hap.Characteristic
   UUIDGen = homebridge.hap.uuid
-  homebridge.registerPlatform("homebridge-SleepIQ", "SleepNumber", SleepNumberPlatform, true)
+  homebridge.registerPlatform("SleepIQ", "SleepNumber", SleepNumberPlatform, true)
 }
 
 class SleepNumberPlatform {
