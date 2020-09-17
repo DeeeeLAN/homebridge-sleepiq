@@ -1,0 +1,43 @@
+{
+    "pluginAlias": "SleepIQ",
+    "pluginType": "platform",
+    "singular": true,
+    "headerDisplay": "Homebridge plugin to control a SleepNumber SleepIQ bed and foundation.",
+    "footerDisplay": "Homebridge-SleepIQ will auto-detect all devices associated with your account. If you have any issues, please submit a github ticket.",
+    "schema": {
+        "type": "object",
+        "properties": {
+            "email": {
+            "title": "Email",
+            "type": "string",
+            "required": true,
+            "placeholder": "SleepIQ Username/Email",
+            "format": "email"
+            },
+            "password": {
+                "title": "Password",
+                "type": "string",
+                "required": true,
+                "placeholder": "SleepIQ Password"
+            },
+            "refresh": {
+                "title": "Refresh Time (in seconds)",
+                "type": "integer",
+                "required": false,
+                "placeholder": 5,
+                "description": "Set to a larger number to increase the time between fetching state from SleepIQ. This can greatly reduce the number of network requests being made, if you don't need immediate data. Note, there is little benefit in setting it below 5 seconds, the SleepIQ API doesn't update immediately either.",
+                "min": 5,
+                "max": 3600
+            },
+            "delay": {
+                "title": "Send Delay (in seconds)",
+                "type": "integer",
+                "required": false,
+                "placeholder": 2,
+                "description": "Controls the delay between setting your sleep number using the slider in Homekit and the value being sent to SleepIQ to adjust your bed. Set higher or lower as desired.",
+                "min": 0,
+                "max": 30
+            }
+        }
+    }
+}
