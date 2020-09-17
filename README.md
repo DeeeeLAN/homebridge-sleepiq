@@ -36,7 +36,7 @@ Fields:
 * "email": SleepIQ account email address
 * "Password": SleepIQ account password
 * "refreshTime": Optional number of seconds between each network request. If not specified, defaults to 5 seconds. I have found little value in going below 5 seconds. The base only updates every 2-3 seconds, and the plugin isn't always in sync with that. Increasing the limit would cause the occupancy to not update as quickly, but it would greatly decrease the number of network requests made.
-"sendDelay": Optional number of seconds to 'debounce' your sleep number updates. This is to allow you to adjust the slider in Homekit without the bed constantly trying to change to the intermediate numbers and possibly ending up on a wrong number in the end. It will wait until the number of seconds specified in sendDelay after no more changes were made before sending an updated value to your bed. Defaults to 2, but you can play around with setting it lower or higher.
+* "sendDelay": Optional number of seconds to 'debounce' your sleep number updates. This is to allow you to adjust the slider in Homekit without the bed constantly trying to change to the intermediate numbers and possibly ending up on a wrong number in the end. It will wait until the number of seconds specified in sendDelay after no more changes were made before sending an updated value to your bed. Defaults to 2, but you can play around with setting it lower or higher.
 # Issues/Future Work
 * Foundation settings (If you have a flexfit foundation, please reach out to help, I need data from all the different bases):
   * Verify different configurations (split head/split foot, split head/single foot, single head/single foot)
