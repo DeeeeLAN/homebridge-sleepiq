@@ -20,11 +20,19 @@ class SleepIQPlatform {
       return;
     }
     
+    // Retrieve config settings
     this.config = config;
     this.username = config["email"];
     this.password = config["password"];
     this.refreshTime = (config["refreshTime"] || 5) * 1000; // update values from SleepIQ every 5 seconds
     this.sendDelay = (config["sendDelay"] || 2) * 1000; // delay updating bed numbers by 2 seconds
+
+    if (!this.username || !this.password) {
+      log.warn("Ignoring SleepIQ setup because username or password was not provided.");
+      this.disabled = true;
+      return;
+    }
+
     this.accessories = new Map();
     this.snapi = new snapi(this.username, this.password);
     this.hasFoundation = false;
