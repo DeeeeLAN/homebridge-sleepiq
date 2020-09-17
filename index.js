@@ -489,7 +489,7 @@ class snNumber {
   // Send a new sleep number to the bed
   setSleepNumber (rawValue) {
     let side = this.accessory.context.side;
-    let value = rawValue - rawValue % 5;
+    let value = Math.max(rawValue - rawValue % 5, 5);
     this.log.debug('Setting sleep number='+value+' on side='+side);
     try {
       this.snapi.sleepNumber(side, value, (data, err=null) => {
