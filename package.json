@@ -10,10 +10,10 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/avidmills/homebridge-sleepiq.git"
+        "url": "https://github.com/DeeeeLAN/homebridge-sleepiq.git"
     },
     "bugs": {
-        "url": "https://github.com/avidmills/homebridge-sleepiq/issues"
+        "url": "https://github.com/DeeeeLAN/homebridge-sleepiq/issues"
     },
     "engines": {
         "node": ">=0.12.0",
