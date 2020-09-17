@@ -2,15 +2,17 @@
   <img src="homebridge-sleepiq.png" height="200px">  
 </p>
 <span align="center">
+
+# Homebridge SleepIQ
 [![Downloads](https://img.shields.io/npm/dt/homebridge-sleepiq)](https://www.npmjs.com/package/homebridge-sleepiq)
 [![Version](https://img.shields.io/npm/v/homebridge-sleepiq)](https://www.npmjs.com/package/homebridge-sleepiq)
 [![GitHub issues](https://img.shields.io/github/issues/DeeeeLAN/homebridge-sleepiq)](https://github.com/DeeeeLAN/homebridge-sleepiq/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/DeeeeLAN/homebridge-sleepiq)](https://github.com/DeeeeLAN/homebridge-sleepiq/pulls)
 
-# Homebridge SleepIQ
 </span>
 
-SleepIQ plugin for [HomeBridge](https://github.com/nfarina/homebridge)
+## SleepIQ plugin for [HomeBridge](https://github.com/nfarina/homebridge)
+Copyright © 2018-2020 Dillan Mills. All rights reserved.
 
 This repository contains a SleepIQ plugin for homebridge that exposes bed occupancy, allows you to control the sleep number setting (modeled as a lightbulb), and is gaining support for the different foundation features (adjust head/foot position, outlets, foot warming, massage, etc.). In theory it is capable of detecting all the beds on your account, and automatically configuring a sensor for each bedside. I was only able to test with a single queen bed so I don't actually know what will happen with multiple beds or with a twin/full mattress. Let me know!
 
