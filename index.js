@@ -619,10 +619,8 @@ class snFlex {
     this.foundationHeadService
     .getCharacteristic(Characteristic.On)
     .on('change', function (oldValue, newValue, callback) {
-      if (!newValue) {
-        this.log.debug("Foundation Head -> "+newValue)
-        this.setFoundation('H', newValue);
-      }
+      this.log.debug("Foundation Head -> "+newValue)
+      this.setFoundation('H', newValue);
       callback();
     }.bind(this));
     
@@ -638,10 +636,8 @@ class snFlex {
     this.foundationFootService
     .getCharacteristic(Characteristic.On)
     .on('change', function (oldValue, newValue, callback) {
-      if (!newValue) {
-        this.log.debug("Foundation Foot -> "+newValue)
-        this.setFoundation('F', newValue);
-      }
+      this.log.debug("Foundation Foot -> "+newValue)
+      this.setFoundation('F', newValue);
       callback();
     }.bind(this));
     
