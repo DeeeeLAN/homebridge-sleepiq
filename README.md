@@ -9,7 +9,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/DeeeeLAN/homebridge-sleepiq)](https://github.com/DeeeeLAN/homebridge-sleepiq/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/DeeeeLAN/homebridge-sleepiq)](https://github.com/DeeeeLAN/homebridge-sleepiq/pulls)
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
-[![donate-with-paypal](hhttps://img.shields.io/badge/donate-%2410-blueviolet)](https://paypal.me/DeeeeLAN)
+[![donate-with-paypal](https://img.shields.io/badge/donate-%2410-blueviolet)](https://paypal.me/DeeeeLAN)
 
 </span>
 
