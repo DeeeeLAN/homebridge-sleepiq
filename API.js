@@ -6,11 +6,10 @@
  *  - https://github.com/natecj/sleepiq-php, 
  * removing the request links that no longer work. 
  * 
- * If anybody discovers other features of the API, let me know!
+ * As of December 2018, I have discovered the additional API requests 
+ * needed to control the pressure of the bed
  * 
- * Most of the information returned by these functions is pretty useless,
- * but if anybody has a creative use for them, I would love to hear about
- * it.
+ * If anybody discovers other features of the API, let me know!
  * 
  * To use, launch node in the same directory as this file, then create an
  * object with
@@ -19,12 +18,20 @@
  * 
  * List of class methods:
  * - api.login()          : required first
+ * - api.genURL()         : allows for passing any url extension in
  * - api.registration()   : 
  * - api.familyStatus()   : where the useful homekit information is
  * - api.sleeper()        : 
  * - api.bed()            : 
- * - api.bedStatus()      : must call familyStatus() or bed() first
- * - api.bedPauseMode()   : must call familyStatus() or bed() first
+ * 
+ * The next five require familyStatus() or bed() to be called first to get a bedID
+ * - api.bedStatus()      : 
+ * - api.bedPauseMode()   : 
+ * - api.sleepNumber()    : Used to set the sleep number for a side
+ * - api.forceIdle()      : Stops the pump
+ * - api.pumpStatus()     : 
+ *
+ * The last two provide bulk sleep data. Could be fun to import into a spreadsheet
  * - api.sleeperData()    : 
  * - api.sleepSliceData() : 
  */
@@ -46,7 +53,7 @@ class API {
 	this.defaultBed = 0 // change if you want the class methods to default to a different bed in your datasets.
     }
 
-    login () {
+    login (callback=null) {
 	request({
 	    method: 'PUT',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/login',
@@ -54,7 +61,11 @@ class API {
 		this.json = JSON.parse(data)
 		this.userID = this.json.userID
 		this.key = this.json.key
-		console.log(JSON.stringify(this.json, null, 3))}.bind(this))
+		if (callback) {
+		    callback(data);
+		}
+		// console.log(JSON.stringify(this.json, null, 3))
+	    }.bind(this));
 
 	/*
 	  {"userId":"",
@@ -65,7 +76,16 @@ class API {
 	*/
     }
 
+    
+    genURL (url) {
+	request({
+	    method: 'GET',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/' + url,
+	    qs: {_k: this.key}}, function(err, resp, data) {
+		console.log(data)}.bind(this))
+    }
 
+    
     registration () {
 	request({
 	    method: 'GET',
@@ -81,14 +101,20 @@ class API {
     }
 
 
-    familyStatus () {
+    familyStatus (callback=null) {
 	request({
 	    method: 'GET',
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/familyStatus',
 	    qs: {_k: this.key}}, function(err, resp, data) {
 		this.json = JSON.parse(data)
-		this.bedID = this.json.beds[this.defaultBed].bedId
-		console.log(JSON.stringify(this.json, null, 3))}.bind(this))
+		if (this.json.beds) {
+		    this.bedID = this.json.beds[this.defaultBed].bedId
+		}
+		if (callback) {
+		    callback(data);
+		}
+		// console.log(JSON.stringify(this.json, null, 3))
+	    }.bind(this))
 
 	/*
 	  {"beds":[ // array of beds
@@ -96,7 +122,7 @@ class API {
 	  "bedId":"", // used to identify each bed
 	  "leftSide":{"isInBed":false, // used in homebridge plugin
 	  "alertDetailedMessage":"No Alert",
-	  "sleepNumber":30,
+	  "sleepNumber":30, // used in homebridge plugin
 	  "alertId":0,
 	  "lastLink":"00:00:00",
 	  "pressure":1088},
@@ -175,7 +201,9 @@ class API {
 	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed',
 	    qs: {_k: this.key}}, function(err, resp, data) {
 		this.json = JSON.parse(data)
-		this.bedID = this.json.beds[this.defaultBed].bedId
+		if (this.json.beds) {
+		    this.bedID = this.json.beds[this.defaultBed].bedId
+		}
 		console.log(JSON.stringify(this.json, null, 3))}.bind(this))
 
 	/*
@@ -247,6 +275,63 @@ class API {
 	*/
     }
 
+
+    // Side is either 'L' or 'R'. Num is any number in the range [0-100]
+    sleepNumber (side, num, callback=null) {
+	request({
+	    method: 'PUT',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/sleepNumber',
+	    qs: {_k: this.key},
+	    body: JSON.stringify({side: side, sleepNumber: num})
+	},
+		function(err, resp, data) {
+		    this.json = JSON.parse(data);
+		    if (callback) {
+			callback(data);
+		    }
+		    // console.log(JSON.stringify(this.json, null, 3))
+		}.bind(this))
+	
+	/*
+	  {} // feel the power
+	*/
+    }
+    
+
+    forceIdle (callback=null) {
+	request({
+	    method: 'PUT',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/pump/forceIdle',
+	    qs: {_k: this.key}}, function(err, resp, data) {
+		this.json = JSON.parse(data)
+		if (callback) {
+		    callback(data);
+		}
+		// console.log(JSON.stringify(this.json, null, 3))
+	    }.bind(this))
+
+	/*
+	  {} // Used to stop the pump if it is in the middle of an action (tapping the screen to stop)
+	*/
+    }
+    
+
+    pumpStatus () {
+	request({
+	    method: 'GET',
+	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/pump/status',
+	    qs: {_k: this.key}}, function(err, resp, data) {
+		this.json = JSON.parse(data)
+		console.log(JSON.stringify(this.json, null, 3))}.bind(this))
+
+	/*
+	  {"activeTask":0,
+	  "chamberType":1,
+	  "leftSideSleepNumber":40,
+	  "rightSideSleepNumber":40}
+	*/
+    }
+    
 
     sleeperData (date, interval) {
 	// date format: 'YYYY-MM-DD'
