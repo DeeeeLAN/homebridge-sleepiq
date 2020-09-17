@@ -49,6 +49,9 @@ class SleepIQPlatform {
   
   async didFinishLaunching () {
     await this.authenticate();
+    if (!this.snapi.key) {
+      return;
+    }
     await this.addAccessories();
     setInterval(this.fetchData.bind(this), this.refreshTime); // continue to grab data every few seconds
   }
@@ -64,7 +67,8 @@ class SleepIQPlatform {
         }
       });
     } catch(err) {
-      this.log("Failed to authenticate with SleepIQ:",err);
+      this.log("Failed to authenticate with SleepIQ. Please double-check your username and password. Disabling SleepIQ plugin. Error:",err.error);
+      this.disabled = true;
     }
   }
   
