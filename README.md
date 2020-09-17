@@ -1,4 +1,4 @@
-# homebridge-SleepIQ
+# Homebridge SleepIQ
 SleepIQ plugin for [HomeBridge](https://github.com/nfarina/homebridge)
 
 This repository contains a SleepIQ plugin for homebridge that exposes bed occupancy, allows you to control the sleep number setting (modeled as a lightbulb), and is gaining support for the different foundation features (adjust head/foot position, outlets, foot warming, massage, etc.). In theory it is capable of detecting all the beds on your account, and automatically configuring a sensor for each bedside. I was only able to test with a single queen bed so I don't actually know what will happen with multiple beds or with a twin/full mattress. Let me know!
