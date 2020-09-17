@@ -125,7 +125,7 @@ class SleepIQPlatform {
         let bedPrivacyAccessory = new snPrivacy(this.log, bedPrivacy, this.snapi);
         bedPrivacyAccessory.getServices();
         
-        this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedPrivacy]);
+        this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedPrivacy]);
         this.accessories.set(bedID+'privacy', bedPrivacyAccessory);
       } else {
         this.log(bedName + " privacy already added from cache");
@@ -145,7 +145,7 @@ class SleepIQPlatform {
         let bedSideOccAccessory = new snOccupancy(this.log, bedSideOcc);
         bedSideOccAccessory.getServices();
         
-        this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideOcc]);
+        this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideOcc]);
         this.accessories.set(sideID+'occupancy', bedSideOccAccessory);
       }
       
@@ -177,7 +177,7 @@ class SleepIQPlatform {
             let bedSideNumAccessory = new snNumber(this.log, bedSideNum, this.snapi);
             bedSideNumAccessory.getServices();
             
-            this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideNum])
+            this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideNum])
             this.accessories.set(sideID+'number', bedSideNumAccessory);
           } else {
             this.log(sideName + " number control already added from cache");
@@ -203,7 +203,7 @@ class SleepIQPlatform {
               let bedSideFlexAccessory = new snFlex(this.log, bedSideFlex, this.snapi);
               bedSideFlexAccessory.getServices();
               
-              this.api.registerPlatformAccessories('homebridge-SleepIQ', 'SleepNumber', [bedSideFlex])
+              this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideFlex])
               this.accessories.set(sideID+'flex', bedSideFlexAccessory)
             } else {
               this.log(sideName + " flex foundation already added from cache")
@@ -228,7 +228,7 @@ class SleepIQPlatform {
   
   removeAccessory (side) {
     this.log('Remove Accessory: ', side.accessory.displayName)
-    this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [side.accessory])
+    this.api.unregisterPlatformAccessories("homebridge-sleepiq", "SleepNumber", [side.accessory])
     this.accessories.delete(side.accessory.context.sideID)
   }
   
@@ -241,7 +241,7 @@ class SleepIQPlatform {
     
     if (accessory.displayName.slice(-4) === 'Side') {
       this.log("Stale accessory. Removing");
-      this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
+      this.api.unregisterPlatformAccessories("homebridge-sleepiq", "SleepNumber", [accessory]);
       return;
     }            
     
@@ -249,7 +249,7 @@ class SleepIQPlatform {
       this.log("Duplicate accessory detected in cache: ", accessory.displayName, "If this appears incorrect, file a ticket on github. Removing duplicate accessory from cache.");
       this.log("You might need to restart homebridge to clear out the old data, especially if the accessory UUID got duplicated.");
       this.log("If the issue persists, try clearing your accessory cache.");
-      this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
+      this.api.unregisterPlatformAccessories("homebridge-sleepiq", "SleepNumber", [accessory]);
       return;
     }
     
@@ -280,7 +280,7 @@ class SleepIQPlatform {
       break;
       default:
       this.log.debug("Unknown accessory type. Removing from accessory cache.");
-      this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
+      this.api.unregisterPlatformAccessories("homebridge-sleepiq", "SleepNumber", [accessory]);
     }
   }
   
