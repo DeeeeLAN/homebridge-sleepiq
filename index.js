@@ -23,7 +23,8 @@ class SleepNumberPlatform {
     this.config = config;
     this.username = config["username"];
     this.password = config["password"];
-    this.refreshTime = (config["refreshTime"] || 5) * 1000;
+    this.refreshTime = (config["refreshTime"] || 5) * 1000; // update values from SleepIQ every 5 seconds
+    this.sendDelay = (config["sendDelay"] || 2) * 1000; // delay updating bed numbers by 2 seconds
     this.accessories = new Map();
     this.snapi = new snapi(this.username, this.password);
     this.hasFoundation = false;
@@ -70,7 +71,7 @@ class SleepNumberPlatform {
         }
       });
     } catch(err) {
-      if (!err.StatusCodeError === 401 && !err.StatusCodeError === 50002) {
+      if (!(err.StatusCodeError === 401) && !(err.StatusCodeError === 50002)) {
         this.log("Failed to retrieve family status:",err);
       }
     }
@@ -90,7 +91,7 @@ class SleepNumberPlatform {
             this.log.debug("foundationStatus result:", data);
             foundationStatus = JSON.parse(data);
             if(foundationStatus.hasOwnProperty('Error')) {
-              if (foundationStatus.Error.Code == 404) {
+              if (foundationStatus.Error.Code === 404) {
                 this.log("No foundation detected");
               } else {
                 this.log("Unknown error occurred when checking the foundation status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
@@ -101,7 +102,7 @@ class SleepNumberPlatform {
           }
         }).bind(this);
       } catch(err) {
-        if (!err.StatusCodeError === 404) {
+        if (!(err.StatusCodeError === 404)) {
           this.log("Failed to retrieve foundation status:", err);
         }
       }
@@ -257,7 +258,7 @@ class SleepNumberPlatform {
       break;
       case 'number':
       accessory.reachable = true;
-      let bedSideNumAccessory = new snNumber(this.log, accessory, this.snapi);
+      let bedSideNumAccessory = new snNumber(this.log, accessory, this.snapi, this.sendDelay);
       bedSideNumAccessory.getServices();
       this.accessories.set(accessory.context.sideID, bedSideNumAccessory);
       break;
@@ -455,20 +456,34 @@ class snOccupancy {
 }
 
 class snNumber {
-  constructor (log, accessory, snapi) {
+  constructor (log, accessory, snapi, sendDelay) {
     this.log = log;
     this.accessory = accessory;
     this.snapi = snapi;
+    this.sendDelay = sendDelay;
     this.sleepNumber = 50;
     this.sideName = this.accessory.context.sideName;
     
     this.numberService = this.accessory.getService(this.sideName+'Number');
     this.numberService.setCharacteristic(Characteristic.On, true);
     
-    
+    this.debounce = this.debounce.bind(this);
     this.getSleepNumber = this.getSleepNumber.bind(this);
     this.setSleepNumber = this.setSleepNumber.bind(this);
     this.updateSleepNumber = this.updateSleepNumber.bind(this);
+  }
+
+
+  debounce (fn, value, delay) {
+    let timeOutId;
+    return function() {
+      if(timeOutId) {
+        clearTimeout(timeOutId);
+      }
+      timeOutId = setTimeout(() => {
+        fn(value);
+      },delay);
+    }()
   }
   
   // Send a new sleep number to the bed
@@ -511,7 +526,7 @@ class snNumber {
     .getCharacteristic(Characteristic.Brightness)
     .on('set', function (value, callback) {
       this.log.debug("Sleep Number -> "+value)
-      this.setSleepNumber(value);
+      this.debounce(this.setSleepNumber, value, this.sendDelay);
       callback()
     }.bind(this))
     .on('get', this.getSleepNumber.bind(this))
@@ -520,7 +535,7 @@ class snNumber {
     .getCharacteristic(Characteristic.On)
     .on('change', function (oldValue, newValue) {
       if (!newValue) {
-        setTimeout(() => this.numberService.setCharacteristic(Characteristic.On, true), 250);
+        setTimeout(() => this.numberService.setCharacteristic(Characteristic.On, true), 250); // if "light" turned off, turn back on after 250ms
       }
     }.bind(this))
     

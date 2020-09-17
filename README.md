@@ -23,7 +23,8 @@ Configuration sample:
 			"platform"    : "SleepNumber",
 			"username"    : "Your SleepIQ Email Address",
 			"password"    : "Your SleepIQ Password",
-			"refreshTime" : 5
+			"refreshTime" : 5,
+			"sendDelay"   : 2,
 		}
 ]
 
