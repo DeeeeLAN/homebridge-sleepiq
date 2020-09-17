@@ -55,7 +55,7 @@ class SleepNumberPlatform {
         }
       });
     } catch(err) {
-      this.log("Promise error:",err);
+      this.log("Failed to authenticate with SleepIQ:",err);
     }
   }
   
@@ -71,7 +71,7 @@ class SleepNumberPlatform {
       });
     } catch(err) {
       if (!err.StatusCodeError === 401 && !err.StatusCodeError === 50002) {
-        this.log("Unknown promise error. If it persists, please report it at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new:",err);
+        this.log("Failed to retrieve family status:",err);
       }
     }
     this.snapi.json.beds.forEach( async function (bed, index) {
@@ -93,16 +93,16 @@ class SleepNumberPlatform {
               if (foundationStatus.Error.Code == 404) {
                 this.log("No foundation detected");
               } else {
-                this.log("Unknown error occured when checking the foundation status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                this.log("Unknown error occurred when checking the foundation status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
               }
             } else {
               this.hasFoundation = true;
             }
           }
-        });
+        }).bind(this);
       } catch(err) {
         if (!err.StatusCodeError === 404) {
-          this.log("Unknown promise error. If it persists, please report it at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new:", err);
+          this.log("Failed to retrieve foundation status:", err);
         }
       }
       
@@ -274,7 +274,7 @@ class SleepNumberPlatform {
       this.accessories.set(accessory.context.sideID, bedPrivacyAccessory);
       break;
       default:
-      this.log.debug("Unkown accessory type. Removing from accessory cache.");
+      this.log.debug("Unknown accessory type. Removing from accessory cache.");
       this.api.unregisterPlatformAccessories("homebridge-SleepIQ", "SleepNumber", [accessory]);
     }
   }
@@ -299,7 +299,7 @@ class SleepNumberPlatform {
     
     if(this.snapi.json.hasOwnProperty('Error')) {
       if (this.snapi.json.Error.Code == 50002 || this.snapi.json.Error.Code == 401) {
-        this.log.debug('SleepIQ authentication failed, stand by for automatic reauthentication')
+        this.log.debug('SleepIQ authentication failed, stand by for automatic re-authentication')
         await this.authenticate();
         //this.fetchData();
       } else {
@@ -309,19 +309,23 @@ class SleepNumberPlatform {
       bedData = JSON.parse(JSON.stringify(this.snapi.json));
       
       if (this.hasFoundation) {
-        await this.snapi.foundationStatus( (data, err=null) => {
-          if (err) {
-            this.log.debug(data, JSON.stringify(err));
-          } else {
-            this.log.debug("Foundation Status GET results:", data);
-          }
-        });
+        try {
+          await this.snapi.foundationStatus( (data, err=null) => {
+            if (err) {
+              this.log.debug(data, JSON.stringify(err));
+            } else {
+              this.log.debug("Foundation Status GET results:", data);
+            }
+          });          
+        } catch(err) {
+          this.log("Failed to fetch foundation status:", err);
+        }
         
         flexData = JSON.parse(JSON.stringify(this.snapi.json));
       }
       
       
-      this.log.debug('SleepIQ JSON data successfully retrieved')
+      this.log.debug('SleepIQ JSON data successfully retrieved');
       this.parseData(bedData, flexData);
       
     }
@@ -329,70 +333,82 @@ class SleepNumberPlatform {
   }
   
   parseData (bedData, flexData) {
-    bedData.beds.forEach(async function (bed, index) {
-      let bedID = bed.bedId
-      let sides = JSON.parse(JSON.stringify(bed))
-      delete sides.status
-      delete sides.bedId
-      
-      if (!this.accessories.has(bedID+'privacy')) {
-        this.log("New privacy switch detected.");
-        this.addAccessories();
-        return
-      } else {
-        this.snapi.bedID = bedID;
+    if (bedData.beds) {
+      bedData.beds.forEach(async function (bed, index) {
+        let bedID = bed.bedId
+        let sides = JSON.parse(JSON.stringify(bed))
+        delete sides.status
+        delete sides.bedId
         
-        await this.snapi.bedPauseMode( (data, err=null) => {
-          if (err) {
-            this.log.debug(data, JSON.stringify(err));
-          } else {
-            this.log.debug("Privacy mode GET results:", data);
-          }
-        });
-        
-        let privacyData = JSON.parse(JSON.stringify(this.snapi.json));
-        this.log.debug('SleepIQ Privacy Mode: ' + privacyData.pauseMode);
-        let bedPrivacyAccessory = this.accessories.get(bedID+'privacy');
-        bedPrivacyAccessory.updatePrivacy(privacyData.pauseMode);
-      }
-      
-      let anySideOccupied = false;
-      
-      Object.keys(sides).forEach(function (bedside, index) {
-        let sideID = bedID+bedside
-        if(!this.accessories.has(sideID+'occupancy') || !this.accessories.has(sideID+'number')) {
-          this.log("New bedside detected.")
+        if (!this.accessories.has(bedID+'privacy')) {
+          this.log("New privacy switch detected.");
           this.addAccessories();
           return
         } else {
-          let thisSideOccupied = sides[bedside].isInBed;
-          this.log.debug('SleepIQ Occupancy Data: {' + bedside + ':' + thisSideOccupied + '}')
-          let bedSideOccAccessory = this.accessories.get(sideID+'occupancy');
-          bedSideOccAccessory.setOccupancyDetected(thisSideOccupied);
-          anySideOccupied = anySideOccupied || thisSideOccupied;
+          this.snapi.bedID = bedID;
           
-          this.log.debug('SleepIQ Sleep Number: {' + bedside + ':' + sides[bedside].sleepNumber + '}')
-          let bedSideNumAccessory = this.accessories.get(sideID+'number');
-          bedSideNumAccessory.updateSleepNumber(sides[bedside].sleepNumber);
-          
-          if (this.hasFoundation) {
-            if (bedside == 'leftSide') {
-              this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsLeftHeadPosition + ", Foot:" + flexData.fsLeftFootPosition + '}')
-              let bedSideFlexLeftAccessory = this.accessories.get(sideID+'flex');
-              bedSideFlexLeftAccessory.updateFoundation(flexData.fsLeftHeadPosition, flexData.fsLeftFootPosition);
-            } else {
-              this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsRightHeadPosition + ", Foot:" + flexData.fsRightFootPosition + '}')
-              let bedSideFlexRightAccessory = this.accessories.get(sideID+'flex');
-              bedSideFlexRightAccessory.updateFoundation(flexData.fsRightHeadPosition, flexData.fsRightFootPosition);
-            }
+          try {
+            await this.snapi.bedPauseMode( (data, err=null) => {
+              if (err) {
+                this.log.debug(data, JSON.stringify(err));
+              } else {
+                this.log.debug("Privacy mode GET results:", data);
+              }
+            });
+          } catch(err) {
+            this.log('Failed to retrieve bed pause mode:', err);
           }
+          
+          let privacyData = JSON.parse(JSON.stringify(this.snapi.json));
+          this.log.debug('SleepIQ Privacy Mode: ' + privacyData.pauseMode);
+          let bedPrivacyAccessory = this.accessories.get(bedID+'privacy');
+          bedPrivacyAccessory.updatePrivacy(privacyData.pauseMode);
         }
+        
+        let anySideOccupied = false;
+        
+        if (sides) {
+          Object.keys(sides).forEach(function (bedside, index) {
+            let sideID = bedID+bedside
+            if(!this.accessories.has(sideID+'occupancy') || !this.accessories.has(sideID+'number')) {
+              this.log("New bedside detected.")
+              this.addAccessories();
+              return
+            } else {
+              let thisSideOccupied = sides[bedside].isInBed;
+              this.log.debug('SleepIQ Occupancy Data: {' + bedside + ':' + thisSideOccupied + '}')
+              let bedSideOccAccessory = this.accessories.get(sideID+'occupancy');
+              bedSideOccAccessory.setOccupancyDetected(thisSideOccupied);
+              anySideOccupied = anySideOccupied || thisSideOccupied;
+              
+              this.log.debug('SleepIQ Sleep Number: {' + bedside + ':' + sides[bedside].sleepNumber + '}')
+              let bedSideNumAccessory = this.accessories.get(sideID+'number');
+              bedSideNumAccessory.updateSleepNumber(sides[bedside].sleepNumber);
+              
+              if (this.hasFoundation) {
+                if (bedside == 'leftSide') {
+                  this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsLeftHeadPosition + ", Foot:" + flexData.fsLeftFootPosition + '}')
+                  let bedSideFlexLeftAccessory = this.accessories.get(sideID+'flex');
+                  bedSideFlexLeftAccessory.updateFoundation(flexData.fsLeftHeadPosition, flexData.fsLeftFootPosition);
+                } else {
+                  this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsRightHeadPosition + ", Foot:" + flexData.fsRightFootPosition + '}')
+                  let bedSideFlexRightAccessory = this.accessories.get(sideID+'flex');
+                  bedSideFlexRightAccessory.updateFoundation(flexData.fsRightHeadPosition, flexData.fsRightFootPosition);
+                }
+              }
+            }
+          }.bind(this))  
+        } else {
+          this.log('Failed to detect a bed side. I am not sure why, so you might want to file a ticket.')
+        }
+        
+        let anySideOccAccessory = this.accessories.get(bedID + 'anySide' + 'occupancy');
+        anySideOccAccessory.setOccupancyDetected(anySideOccupied);
+        
       }.bind(this))
-      
-      let anySideOccAccessory = this.accessories.get(bedID + 'anySide' + 'occupancy');
-      anySideOccAccessory.setOccupancyDetected(anySideOccupied);
-      
-    }.bind(this))
+    } else {
+      this.log('Failed to find a bed, I think. I am not sure why, but if you have a bed attached to your account, you should probably file a bug.')
+    }
   }
   
 }
@@ -460,13 +476,17 @@ class snNumber {
     let side = this.accessory.context.side;
     let value = rawValue - rawValue % 5;
     this.log.debug('Setting sleep number='+value+' on side='+side);
-    this.snapi.sleepNumber(side, value, (data, err=null) => {
+    try {
+      this.snapi.sleepNumber(side, value, (data, err=null) => {
       if (err) {
         this.log.debug(data, err);
       } else {
-        this.log.debug("Sleep Number PUT result:", data)
-      }
-    });
+          this.log.debug("Sleep Number PUT result:", data)
+        }
+      });
+    } catch(err) {
+      this.log('Failed to set sleep number='+value+' on side='+side+' :', err);
+    }
   }
   
   // Keep sleep number updated with external changes through sleepIQ app
@@ -531,13 +551,17 @@ class snFlex {
   setFoundation (actuator, value) {
     let side = this.accessory.context.side;
     this.log.debug('Setting foundation position='+value+' on side='+side+' for position='+actuator);
-    this.snapi.adjust(side, actuator, value, (data, err=null) => {
-      if (err) {
-        this.log.debug(data, err);
-      } else {
-        this.log.debug("adjust PUT result:", data)
-      }
-    });
+    try {
+      this.snapi.adjust(side, actuator, value, (data, err=null) => {
+        if (err) {
+          this.log.debug(data, err);
+        } else {
+          this.log.debug("adjust PUT result:", data)
+        }
+      });
+    } catch(err) {
+      this.log('Failed to set foundation position='+value+' on side='+side+' for position='+actuator+' :', err);
+    }
   }
   
   // Keep foundation position updated with external changes through sleepIQ app
@@ -601,13 +625,17 @@ class snPrivacy {
   // Send a new privacy value to the bed
   setPrivacy (value) {
     this.log.debug('Setting privacy mode to', value);
-    this.snapi.setBedPauseMode(value ? 'on' : 'off', (data, err=null) => {
-      if (err) {
-        this.log.debug(data, err);
-      } else {
-        this.log.debug("privacy PUT result:", data)
-      }
-    });
+    try {
+      this.snapi.setBedPauseMode(value ? 'on' : 'off', (data, err=null) => {
+        if (err) {
+          this.log.debug(data, err);
+        } else {
+          this.log.debug("privacy PUT result:", data)
+        }
+      });
+    } catch(err) {
+      this.log('Failed to set privacy mode to '+value+' :', err);
+    }
   }
   
   // Keep privacy mode updated with external changes through sleepIQ app
