@@ -1,8 +1,8 @@
 'use strict'
 var Accessory, Service, Characteristic, UUIDGen
-var snapi = require('./API.js')
+import snapi from './API.js'
 
-module.exports = function (homebridge) {
+export default function (homebridge) {
   Accessory = homebridge.platformAccessory
   Service = homebridge.hap.Service
   Characteristic = homebridge.hap.Characteristic
