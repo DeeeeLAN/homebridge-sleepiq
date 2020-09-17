@@ -8,6 +8,7 @@
 [![Version](https://img.shields.io/npm/v/homebridge-sleepiq)](https://www.npmjs.com/package/homebridge-sleepiq)
 [![GitHub issues](https://img.shields.io/github/issues/DeeeeLAN/homebridge-sleepiq)](https://github.com/DeeeeLAN/homebridge-sleepiq/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/DeeeeLAN/homebridge-sleepiq)](https://github.com/DeeeeLAN/homebridge-sleepiq/pulls)
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
 </span>
 
