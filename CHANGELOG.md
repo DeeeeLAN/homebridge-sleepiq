@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.2 (2020-09-18)
+
+### Bug Fixes
+
+- Fixed a bug preventing the foot warming service from sending changes to the bed. 
+
 ## v4.1.1 (2020-09-17)
 
 ### Note

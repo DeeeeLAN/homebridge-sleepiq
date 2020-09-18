@@ -1192,7 +1192,7 @@ class snFootWarmer {
     }
     this.log.debug('Setting foot warmer to='+warmingValue+' on side='+side+', with timer='+this.timer);
     try {
-      this.snapi.warmingValue(side, warmingValue, this.timer, (data, err=null) => {
+      this.snapi.footWarming(side, warmingValue, this.timer, (data, err=null) => {
       if (err) {
         this.log.debug(data, err);
       } else {

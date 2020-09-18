@@ -570,7 +570,9 @@ class API {
         return request({
             method: 'PUT',
             uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/footwarming',
-			qs: {_k: this.key, side: side, footWarmingTemp: temp, footWarmingTimer: timer}
+			qs: side === "RIGHT" ? 
+				{_k: this.key, footWarmingTempRight: temp, footWarmingTimerRight: timer} : 
+				{_k: this.key, footWarmingTempLeft: temp, footWarmingTimerLeft: timer}
 		},
 			function(err, resp, data) {
 				if (err) {
