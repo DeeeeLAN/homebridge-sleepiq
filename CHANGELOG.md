@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.1 (2020-09-17)
+
+### Note
+
+- You will like run into an issue when updating that is preventing homebridge from running. Try removing the bed0privacy device from the device cache (or just clear the full cache). I updated how I handled this device in the plugin and it is conflicting with the version stored in the cache. 
+
 ## v4.1.0 (2020-09-17)
 
 ### Changes
