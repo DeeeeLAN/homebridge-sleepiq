@@ -35,11 +35,12 @@ Configuration sample:
  ```
 "platforms": [
 		{
-			"platform"    : "SleepIQ",
-			"email"       : "Your SleepIQ Email Address",
-			"password"    : "Your SleepIQ Password",
-			"refreshTime" : 5,
-			"sendDelay"   : 2,
+			"platform"     : "SleepIQ",
+			"email"        : "Your SleepIQ Email Address",
+			"password"     : "Your SleepIQ Password",
+			"refreshTime"  : 5,
+			"sendDelay"    : 2,
+			"warmingTimer" : "6h",
 		}
 ]
 
@@ -52,12 +53,14 @@ Fields:
 * "Password": SleepIQ account password
 * "refreshTime": Optional number of seconds between each network request. If not specified, defaults to 5 seconds. I have found little value in going below 5 seconds. The base only updates every 2-3 seconds, and the plugin isn't always in sync with that. Increasing the limit would cause the occupancy to not update as quickly, but it would greatly decrease the number of network requests made.
 * "sendDelay": Optional number of seconds to 'debounce' your sleep number updates. This is to allow you to adjust the slider in Homekit without the bed constantly trying to change to the intermediate numbers and possibly ending up on a wrong number in the end. It will wait until the number of seconds specified in sendDelay after no more changes were made before sending an updated value to your bed. Defaults to 2, but you can play around with setting it lower or higher.
+* "warmingTimer": Only matters if you have a foundation with a foot warmer. Sets the timeout used when turning on the foot warmer. I recommend leaving it at "6h", then using Homekit to turn it off sooner if desired. There is no way to leave the foot warmer on indefinitely, unfortunately. Possible values: "30m", "1h", "2h", "3h", "4h", "5h", "6h".
 # Issues/Future Work
 * Foundation settings (If you have a flexfit foundation, please reach out to help, I need data from all the different bases):
   * Verify different configurations (split head/split foot, split head/single foot, single head/single foot)
-  * Set up outlets for all bases that have them
-  * Set up foot heater for flexfit 3
-  * ?
+  * Verify outlets and light strips work for all bases that have them
+  * Verify foot heater works for flexfit 3
+  * Add controls for the massager?
+  * Add the SleepIQ presets (if there is interest, it would be a separate lightbulb with 6 levels).
 * Allow for different refresh times based on the time of day
 * Verify everything still works will twin/full beds (If anybody has one, contact me)
 * Verify support for multiple beds (Does anybody have multiple beds?)

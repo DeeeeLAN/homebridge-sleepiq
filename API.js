@@ -536,8 +536,61 @@ class API {
               "Message": "Foundation is not connected or not working properly"
           }
         */
-    }
+	}
 
+
+	footWarmingStatus (callback=null) {
+		return request({
+			method: 'GET',
+			uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/footwarming',
+			qs: {_k: this.key}
+		},
+			function(err, resp, data) {
+				if (err) {
+					return callback("footWarmingStatus GET failed. Error:",err);
+				}
+				this.json = JSON.parse(data)
+				if (callback) {
+					callback(data);
+				}
+				// console.log(JSON.stringify(this.json, null, 3))
+			}.bind(this))
+
+		/*
+			"Error": {
+				"Code": 404,
+				"Message": "Foundation is not connected or not working properly"
+			}
+		*/
+	}
+
+	// temp is 0, 31, 57, 72
+	// timer is 30m, 1h, 2h, 3h, 4h, 5h, 6h
+    footWarming (side, temp, timer, callback=null) {
+        return request({
+            method: 'PUT',
+            uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/footwarming',
+			qs: {_k: this.key, side: side, footWarmingTemp: temp, footWarmingTimer: timer}
+		},
+			function(err, resp, data) {
+				if (err) {
+					return callback("outlet PUT failed. Error:",err);
+				}
+				this.json = JSON.parse(data)
+				if (callback) {
+					callback(data);
+				}
+				// console.log(JSON.stringify(this.json, null, 3))
+			}.bind(this))
+
+        /*
+          "Error": {
+              "Code": 404,
+              "Message": "Foundation is not connected or not working properly"
+          }
+        */
+	}
+	
     // Side is 'L' or 'R',   head, massage, and foot are all 0 or 1
     motion (side, head, massage, foot, callback=null) {
 	return request({

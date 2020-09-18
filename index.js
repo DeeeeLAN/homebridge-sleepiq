@@ -26,6 +26,7 @@ class SleepIQPlatform {
     this.password = config["password"];
     this.refreshTime = (config["refreshTime"] || 5) * 1000; // update values from SleepIQ every 5 seconds
     this.sendDelay = (config["sendDelay"] || 2) * 1000; // delay updating bed numbers by 2 seconds
+    this.warmingTimer = (config["warmingTimer"] || '6h'); // default timer for foot warming is 6h
 
     if (!this.username || !this.password) {
       log.warn("Ignoring SleepIQ setup because username or password was not provided.");
@@ -35,9 +36,13 @@ class SleepIQPlatform {
 
     this.accessories = new Map();
     this.snapi = new snapi(this.username, this.password);
+
+    // Set default available components
     this.hasFoundation = false;
     this.hasOutlets = false;
     this.hasLightstrips = false;
+    this.hasWarmers = false;
+
     if (api) {
       this.api = api;
       
@@ -172,6 +177,33 @@ class SleepIQPlatform {
                 }
               }
 
+              // check if the foundation has foot warmers
+              try {
+                await this.snapi.footWarmingStatus(((data, err=null) => {
+                  if (err) {
+                    this.log.debug(data, err);
+                  } else {
+                    this.log.debug("footWarmingStatus result:", data);
+                    let footWarmingStatus = JSON.parse(data);
+                    if(footWarmingStatus.hasOwnProperty('Error')) {
+                      if (footWarmingStatus.Error.Code === 404) {
+                        this.log("No foot warmer detected");
+                      } else {
+                        this.log("Unknown error occurred when checking the foot warmer status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                      }
+                    } else {
+                      this.hasWarmers = true
+                    }
+                  }
+                }).bind(this));
+              } catch(err) {
+                if (typeof err === 'string' || err instanceof String)
+                  err = JSON.parse(err)
+                if (!(err.statusCode === 404)) {
+                  this.log("Failed to retrieve foot warmer status:", JSON.stringify(err));
+                }
+              }
+
             }
           }
         }).bind(this));
@@ -192,6 +224,7 @@ class SleepIQPlatform {
         
         bedPrivacy.context.sideID = bedID+'privacy';
         bedPrivacy.context.type = 'privacy';
+        bedPrivacy.context.bedName = bedName;
         
         bedPrivacy.addService(Service.Switch, bedName+'Privacy');
         
@@ -341,8 +374,36 @@ class SleepIQPlatform {
               }
             }
 
-            
+            // register side foot warmer control
+            if (this.hasWarmers) {
+              // register foot warmer
+              if(!this.accessories.has(bedID+'footwarmer')) {
+                this.log("Found BedSide Foot Warmer: ", sideName);
+                    
+                let uuid = UUIDGen.generate(sideID+'footwarmer');
+                let bedSideFootWarmer = new Accessory(sideName+'footwarmer', uuid);
+                
+                bedSideFootWarmer.context.side = bedside[0].toUpperCase();
+                bedSideFootWarmer.context.sideID = sideID+'footwarmer';
+                bedSideFootWarmer.context.sideName = sideName;
+                bedSideFootWarmer.context.type = 'footwarmer';
+                
+                bedSideFootWarmer.addService(Service.Lightbulb, sideName+'FootWarmer');
+                let footwarmerService = bedSideFootWarmer.getService(Service.Lightbulb, sideName+'FootWarmer');
+                footwarmerService.addCharacteristic(Characteristic.Brightness);
+
+                
+                let bedSideFootWarmerAccessory = new snFootWarmer(this.log, bedSideFootWarmer, this.snapi, this.warmingTimer);
+                bedSideFootWarmerAccessory.getServices();
+                
+                this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideFootWarmer])
+                this.accessories.set(sideID+'footwarmer', bedSideFootWarmerAccessory);
+              } else {
+                this.log(bedName + ' foot warmer already added from cache')
+              }
+            }
           }
+
         } catch (err) {
           this.log('Error when setting up bedsides:',err);
         }
@@ -358,6 +419,7 @@ class SleepIQPlatform {
       } else {
         this.log(anySideName + " occupancy already added from cache");
       }
+
     }.bind(this))
   }
   
@@ -418,6 +480,12 @@ class SleepIQPlatform {
         let bedSideLightStripAccessory = new snLightStrip(this.log, accessory, this.snapi);
         bedSideLightStripAccessory.getServices();
         this.accessories.set(accessory.context.sideID, bedSideLightStripAccessory);
+        break;
+      case 'footwarmer':
+        accessory.reachable = true;
+        let bedSideFootWarmerAccessory = new snFootWarmer(this.log, accessory, this.snapi, this.warmingTimer);
+        bedSideFootWarmerAccessory.getServices();
+        this.accessories.set(accessory.context.sideID, bedSideFootWarmerAccessory);
         break;
       case 'privacy':
         accessory.reachable = true;
@@ -620,6 +688,44 @@ class SleepIQPlatform {
                     });
                   } catch(err) {
                     this.log('Failed to fetch lightstrip status:', err);
+                  }
+                } // if(this.hasLightstrips)
+
+                // check foot warmer data
+                if (this.hasWarmer) {
+                  // fetch foot warmer data
+                  try {
+                    await this.snapi.footWarmingStatus((data, err=null) => {
+                      if (err) {
+                        this.log.debug(data, err);
+                      } else {
+                        this.log.debug("footWarmerStatus result:", data);
+                        let footWarmerStatus = JSON.parse(data);
+                        if(footWarmerStatus.hasOwnProperty('Error')) {
+                          if (footWarmerStatus.Error.Code === 404) {
+                            this.log('No foot warmer detected');
+                          } else {
+                            this.log('Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
+                          }
+                        } else {
+                          this.log.debug("Foot Warmer Status GET results:", data);
+                          let footWarmerData = JSON.parse(JSON.stringify(this.snapi.json));
+
+                          // update foot warmer data
+                          if (bedSide === 'leftSide') {
+                            this.log.debug('SleepIQ foot warmer Data: {' + bedside + ':' + footWarmerData.footWarmingTempLeft + '}');
+                            let footWarmerAccessory = this.accessories.get(sideID+'footwarmer');
+                            footWarmerAccessory.updateFootWarmer(footWarmerData.footWarmingTempLeft);
+                          } else {
+                            this.log.debug('SleepIQ foot warmer Data: {' + bedside + ':' + footWarmerData.footWarmingTempRight + '}');
+                            let footWarmerAccessory = this.accessories.get(sideID+'footwarmer');
+                            footWarmerAccessory.updateFootWarmer(footWarmerData.footWarmingTempRight);
+                          }
+                        }
+                      }
+                    });
+                  } catch(err) {
+                    this.log('Failed to fetch foot warmer status:', err);
                   }
                 } // if(this.hasLightstrips)
               } // if(this.hasFoundation)
@@ -873,8 +979,9 @@ class snPrivacy {
     this.accessory = accessory;
     this.snapi = snapi;
     this.privacy = 'off';
+    this.bedName = this.accessory.context.bedName
     
-    this.privacyService = this.accessory.getService(Service.Switch);
+    this.privacyService = this.accessory.getService(this.bedName+'Privacy');
     
     this.getPrivacy = this.getPrivacy.bind(this);
     this.setPrivacy = this.setPrivacy.bind(this);
@@ -937,7 +1044,7 @@ class snOutlet {
     this.outlet = '0';
     this.sideName = this.accessory.context.sideName;
     
-    this.outletService = this.accessory.getService(Service.Outlet);
+    this.outletService = this.accessory.getService(this.sideName+'Outlet');
     
     this.getOutlet = this.getOutlet.bind(this);
     this.setOutlet = this.setOutlet.bind(this);
@@ -1001,7 +1108,7 @@ class snLightStrip {
     this.lightStrip = '0';
     this.sideName = this.accessory.context.sideName;
     
-    this.LightStripService = this.accessory.getService(Service.Lightbulb);
+    this.LightStripService = this.accessory.getService(this.sideName+'Lightstrip');
     
     this.getLightStrip = this.getLightStrip.bind(this);
     this.setLightStrip = this.setLightStrip.bind(this);
@@ -1056,3 +1163,83 @@ class snLightStrip {
   }
 }
 
+
+class snFootWarmer {
+  constructor (log, accessory, snapi, timer) {
+    this.log = log;
+    this.accessory = accessory;
+    this.snapi = snapi;
+    this.warmingValue = 0;
+    this.sideName = this.accessory.context.sideName;
+    this.timer = timer;
+    
+    this.footWarmerService = this.accessory.getService(this.sideName+'FootWarmer');
+    
+    this.getFootWarmer = this.getFootWarmer.bind(this);
+    this.setFootWarmer = this.setFootWarmer.bind(this);
+    this.updateFootWarmer = this.updateFootWarmer.bind(this);
+  }
+  
+  // Send a new sleep number to the bed
+  setFootWarmer (value) {
+    let side = this.accessory.context.side;
+    let warmingValue;
+    switch(value) {
+      case 1  : warmingValue = '31'; break;
+      case 2  : warmingValue = '57'; break;
+      case 3  : warmingValue = '72'; break;
+      default : warmingValue =  '0'; break;
+    }
+    this.log.debug('Setting foot warmer to='+warmingValue+' on side='+side+', with timer='+this.timer);
+    try {
+      this.snapi.warmingValue(side, warmingValue, this.timer, (data, err=null) => {
+      if (err) {
+        this.log.debug(data, err);
+      } else {
+          this.log.debug("Foot Warmer PUT result:", data)
+        }
+      });
+    } catch(err) {
+      this.log('Failed to set sleep number='+warmingValue+' on side='+side+', with timer='+this.timer+' :', err);
+    }
+  }
+  
+  // Keep sleep number updated with external changes through sleepIQ app
+  updateFootWarmer(value) {
+    switch(value) {
+      case '31': this.warmingValue = 1; break;
+      case '57': this.warmingValue = 2; break;
+      case '72': this.warmingValue = 3; break;
+      default: this.warmingValue = 0; break;
+    }
+  }
+  
+  getFootWarmer (callback) {
+    return callback(null, this.warmingValue);
+  }
+  
+  getServices () {
+    
+    let informationService = this.accessory.getService(Service.AccessoryInformation);
+    informationService
+    .setCharacteristic(Characteristic.Manufacturer, "Sleep Number")
+    .setCharacteristic(Characteristic.Model, "SleepIQ")
+    .setCharacteristic(Characteristic.SerialNumber, "360");
+    
+    this.footWarmerService
+    .getCharacteristic(Characteristic.Brightness)
+    .on('set', function (value, callback) {
+      this.log.debug("Foot Warmer -> "+value)
+      this.setFootWarmer(value);
+      callback();
+    }.bind(this))
+    .on('get', this.getFootWarmer.bind(this))
+    .setProps({
+      minValue: 0,
+      maxValue: 3,
+      minStep: 1
+    });
+    
+    return [informationService, this.footWarmerService]
+  }
+}

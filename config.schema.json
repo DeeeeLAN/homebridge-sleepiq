@@ -37,6 +37,22 @@
                 "description": "Controls the delay between setting your sleep number using the slider in Homekit and the value being sent to SleepIQ to adjust your bed. Set higher or lower as desired.",
                 "min": 0,
                 "max": 30
+            },
+            "warmingTimer": {
+                "title": "Foot Warming Timer",
+                "type": "string",
+                "required": false,
+                "default": "6h",
+                "oneOf": [
+                    { "title": "30m", "enum": ["30m"] },
+                    { "title": "1h", "enum": ["1h"] },
+                    { "title": "2h", "enum": ["2h"] },
+                    { "title": "3h", "enum": ["3h"] },
+                    { "title": "4h", "enum": ["4h"] },
+                    { "title": "5h", "enum": ["5h"] },
+                    { "title": "6h", "enum": ["6h"] }
+                ],
+                "description": "Sets the timeout used when turning on the foot warmer. I recommend leaving it at the highest value, then using Homekit to turn it off sooner if desired. There is no way to leave the foot warmer on indefinitely, unfortunately."
             }
         }
     }
