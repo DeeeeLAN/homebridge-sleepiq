@@ -484,16 +484,51 @@ class API {
 	  "fsLeftFootActuatorMotorStatus": "00"
 	  }
 	*/
-    }
+	}
+	
+	// num must be between 1 and 4 (1 and 2 are plugs, 3 and 4 control the light-strips)
+	outletStatus (num) {
+		return request({
+			method: 'GET',
+			uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/outlet',
+			qs: {_k: this.key, outletId: num}
+		},
+			function(err, resp, data) {
+				if (err) {
+					return callback("outletStatus GET failed. Error:",err);
+				}
+				this.json = JSON.parse(data)
+				if (callback) {
+					callback(data);
+				}
+				// console.log(JSON.stringify(this.json, null, 3))
+			}.bind(this))
+
+		/*
+			"Error": {
+				"Code": 404,
+				"Message": "Foundation is not connected or not working properly"
+			}
+		*/
+	}
 
     // num must be between 1 and 4, setting is 0 or 1
-    outlet (num, setting) {
+    outlet (num, setting, callback=null) {
         return request({
-            method: 'GET',
+            method: 'PUT',
             uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/outlet',
-            qs: {_k: this.key, outletId: num, /*bedId: this.bedID, outlet: num, */setting: setting, /*timer: null*/}}, function(err, resp, data) {
-                this.json = JSON.parse(data)
-                console.log(JSON.stringify(this.json, null, 3))}.bind(this))
+			qs: {_k: this.key, outletId: num, setting: setting}
+		},
+			function(err, resp, data) {
+				if (err) {
+					return callback("outlet PUT failed. Error:",err);
+				}
+				this.json = JSON.parse(data)
+				if (callback) {
+					callback(data);
+				}
+				// console.log(JSON.stringify(this.json, null, 3))
+			}.bind(this))
 
         /*
           "Error": {
@@ -513,11 +548,11 @@ class API {
 	},
 		function(err, resp, data) {
 		    if (err) {
-			return callback("motion PUT failed. Error:",err);
+				return callback("motion PUT failed. Error:",err);
 		    }
 		    this.json = JSON.parse(data);
 		    if (callback) {
-			callback(data);
+				callback(data);
 		    }
 		    // console.log(JSON.stringify(this.json, null, 3))
 		}.bind(this))
