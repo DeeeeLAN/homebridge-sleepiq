@@ -36,6 +36,8 @@ class SleepIQPlatform {
     this.accessories = new Map();
     this.snapi = new snapi(this.username, this.password);
     this.hasFoundation = false;
+    this.hasOutlets = false;
+    this.hasLightstrips = false;
     if (api) {
       this.api = api;
       
@@ -74,6 +76,7 @@ class SleepIQPlatform {
   
   
   async addAccessories () {
+    // Attempt to retrieve main dataset
     try {
       await this.snapi.familyStatus( (data, err=null) => {
         if (err) {
@@ -89,6 +92,8 @@ class SleepIQPlatform {
         this.log("Failed to retrieve family status:",JSON.stringify(err));
       }
     }
+
+    // Loop through each bed
     this.snapi.json.beds.forEach( async function (bed, index) {
       let bedName = "bed" + index
       let bedID = bed.bedId
@@ -96,14 +101,14 @@ class SleepIQPlatform {
       delete sides.status
       delete sides.bedId
       
-      var foundationStatus;
+      // Check if there is a foundation attached
       try {
-        await this.snapi.foundationStatus(((data, err=null) => {
+        await this.snapi.foundationStatus((async (data, err=null) => {
           if (err) {
             this.log.debug(data, err);
           } else {
             this.log.debug("foundationStatus result:", data);
-            foundationStatus = JSON.parse(data);
+            let foundationStatus = JSON.parse(data);
             if(foundationStatus.hasOwnProperty('Error')) {
               if (foundationStatus.Error.Code === 404) {
                 this.log("No foundation detected");
@@ -112,6 +117,61 @@ class SleepIQPlatform {
               }
             } else {
               this.hasFoundation = true;
+
+              // check if the foundation has outlets
+              try {
+                await this.snapi.outletStatus('1', ((data, err=null) => {
+                  if (err) {
+                    this.log.debug(data, err);
+                  } else {
+                    this.log.debug("outletStatus result:", data);
+                    let outletStatus = JSON.parse(data);
+                    if(outletStatus.hasOwnProperty('Error')) {
+                      if (outletStatus.Error.Code === 404) {
+                        this.log("No outlet detected");
+                      } else {
+                        this.log("Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                      }
+                    } else {
+                      this.hasOutlets = true
+                    }
+                  }
+                }).bind(this));
+              } catch(err) {
+                if (typeof err === 'string' || err instanceof String)
+                  err = JSON.parse(err)
+                if (!(err.statusCode === 404)) {
+                  this.log("Failed to retrieve outlet status:", JSON.stringify(err));
+                }
+              }
+
+              // check if the foundation has lightstrips
+              try {
+                await this.snapi.outletStatus('3', ((data, err=null) => {
+                  if (err) {
+                    this.log.debug(data, err);
+                  } else {
+                    this.log.debug("outletStatus result:", data);
+                    let outletStatus = JSON.parse(data);
+                    if(outletStatus.hasOwnProperty('Error')) {
+                      if (outletStatus.Error.Code === 404) {
+                        this.log("No lightstrip detected");
+                      } else {
+                        this.log("Unknown error occurred when checking the lightstrip status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                      }
+                    } else {
+                      this.hasLightstrips = true
+                    }
+                  }
+                }).bind(this));
+              } catch(err) {
+                if (typeof err === 'string' || err instanceof String)
+                  err = JSON.parse(err)
+                if (!(err.statusCode === 404)) {
+                  this.log("Failed to retrieve lightstrip status:", JSON.stringify(err));
+                }
+              }
+
             }
           }
         }).bind(this));
@@ -123,6 +183,7 @@ class SleepIQPlatform {
         }
       }
       
+      // Check if bed has privacy mode
       if(!this.accessories.has(bedID+'privacy')) {
         this.log("Found Bed Privacy Switch: ", bedName);
         
@@ -143,6 +204,7 @@ class SleepIQPlatform {
         this.log(bedName + " privacy already added from cache");
       }
       
+      // function to register an occupancy sensor
       const registerOccupancySensor = (sideName, sideID) => {
         this.log("Found BedSide Occupancy Sensor: ", sideName);
         
@@ -161,16 +223,20 @@ class SleepIQPlatform {
         this.accessories.set(sideID+'occupancy', bedSideOccAccessory);
       }
       
+      // loop through each bed side
       Object.keys(sides).forEach( function (bedside, index) {
         try {
           let sideName = bedName+bedside
           let sideID = bedID+bedside
+
+          // register side occupancy sensor
           if(!this.accessories.has(sideID+'occupancy')) {
             registerOccupancySensor(sideName, sideID);
           } else {
             this.log(sideName + " occupancy already added from cache");
           }
           
+          // register side number control
           if (!this.accessories.has(sideID+'number')) {
             this.log("Found BedSide Number Control: ", sideName);
             
@@ -195,7 +261,9 @@ class SleepIQPlatform {
             this.log(sideName + " number control already added from cache");
           }
           
+          // check for foundation
           if (this.hasFoundation) {
+            // register side foundation head and foot control units
             if (!this.accessories.has(sideID+'flex')) {
               this.log("Found BedSide Flex Foundation: ", sideName);
               
@@ -220,6 +288,60 @@ class SleepIQPlatform {
             } else {
               this.log(sideName + " flex foundation already added from cache")
             }
+
+            // register side outlet control
+            if (this.hasOutlets) {
+              if (!this.accessories.has(sideID+'outlet')) {
+                // register outlet
+                this.log("Found BedSide Outlet: ", sideName);
+        
+                let uuid = UUIDGen.generate(sideID+'outlet');
+                let bedSideOutlet = new Accessory(sideName+'outlet', uuid);
+                
+                bedSideOutlet.context.side = bedside[0].toUpperCase();
+                bedSideOutlet.context.sideID = sideID+'outlet';
+                bedSideOutlet.context.sideName = sideName;
+                bedSideOutlet.context.type = 'outlet';
+                
+                bedSideOutlet.addService(Service.Outlet, sideName+'Outlet')
+                
+                let bedSideOutletAccessory = new snOutlet(this.log, bedSideOutlet, this.snapi);
+                bedSideOutletAccessory.getServices();
+                
+                this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideOutlet])
+                this.accessories.set(sideID+'outlet', bedSideOutletAccessory)
+              } else {
+                this.log(sideName + ' outlet already added from cache')
+              }
+            }
+
+            // register side lightstrip control
+            if (this.hasLightstrips) {
+              if (!this.accessories.has(sideID+'lightstrip')) {
+                // register lightstrip
+                this.log("Found BedSide Lightstrip: ", sideName);
+        
+                let uuid = UUIDGen.generate(sideID+'lightstrip');
+                let bedSideOutlet = new Accessory(sideName+'lightstrip', uuid);
+                
+                bedSideOutlet.context.side = bedside[0].toUpperCase();
+                bedSideOutlet.context.sideID = sideID+'lightstrip';
+                bedSideOutlet.context.sideName = sideName;
+                bedSideOutlet.context.type = 'lightstrip';
+                
+                bedSideOutlet.addService(Service.Lightbulb, sideName+'Lightstrip')
+                
+                let bedSideOutletAccessory = new snLightStrip(this.log, bedSideOutlet, this.snapi);
+                bedSideOutletAccessory.getServices();
+                
+                this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideOutlet])
+                this.accessories.set(sideID+'lightstrip', bedSideOutletAccessory)
+              } else {
+                this.log(sideName + ' lightstrip already added from cache')
+              }
+            }
+
+            
           }
         } catch (err) {
           this.log('Error when setting up bedsides:',err);
@@ -227,6 +349,7 @@ class SleepIQPlatform {
         
       }.bind(this))
       
+      // add "anySide" occupancy sensor
       const anySideID = bedID + "anySide";
       const anySideName = bedName + "anySide";
       if(!this.accessories.has(anySideID+'occupancy')) {
@@ -267,32 +390,44 @@ class SleepIQPlatform {
     
     switch(accessory.context.type) {
       case 'occupancy':
-      accessory.reachable = true;
-      let bedSideOccAccessory = new snOccupancy(this.log, accessory);
-      bedSideOccAccessory.getServices();
-      this.accessories.set(accessory.context.sideID, bedSideOccAccessory);
-      break;
+        accessory.reachable = true;
+        let bedSideOccAccessory = new snOccupancy(this.log, accessory);
+        bedSideOccAccessory.getServices();
+        this.accessories.set(accessory.context.sideID, bedSideOccAccessory);
+        break;
       case 'number':
-      accessory.reachable = true;
-      let bedSideNumAccessory = new snNumber(this.log, accessory, this.snapi, this.sendDelay);
-      bedSideNumAccessory.getServices();
-      this.accessories.set(accessory.context.sideID, bedSideNumAccessory);
-      break;
+        accessory.reachable = true;
+        let bedSideNumAccessory = new snNumber(this.log, accessory, this.snapi, this.sendDelay);
+        bedSideNumAccessory.getServices();
+        this.accessories.set(accessory.context.sideID, bedSideNumAccessory);
+        break;
       case 'flex':
-      accessory.reachable = true;
-      let bedSideFlexAccessory = new snFlex(this.log, accessory, this.snapi);
-      bedSideFlexAccessory.getServices();
-      this.accessories.set(accessory.context.sideID, bedSideFlexAccessory);
-      break;
+        accessory.reachable = true;
+        let bedSideFlexAccessory = new snFlex(this.log, accessory, this.snapi);
+        bedSideFlexAccessory.getServices();
+        this.accessories.set(accessory.context.sideID, bedSideFlexAccessory);
+        break;
+      case 'outlet':
+        accessory.reachable = true;
+        let bedSideOutletAccessory = new snOutlet(this.log, accessory, this.snapi);
+        bedSideOutletAccessory.getServices();
+        this.accessories.set(accessory.context.sideID, bedSideOutletAccessory);
+        break;
+      case 'lightstrip':
+        accessory.reachable = true;
+        let bedSideLightStripAccessory = new snLightStrip(this.log, accessory, this.snapi);
+        bedSideLightStripAccessory.getServices();
+        this.accessories.set(accessory.context.sideID, bedSideLightStripAccessory);
+        break;
       case 'privacy':
-      accessory.reachable = true;
-      let bedPrivacyAccessory = new snPrivacy(this.log, accessory, this.snapi);
-      bedPrivacyAccessory.getServices();
-      this.accessories.set(accessory.context.sideID, bedPrivacyAccessory);
-      break;
+        accessory.reachable = true;
+        let bedPrivacyAccessory = new snPrivacy(this.log, accessory, this.snapi);
+        bedPrivacyAccessory.getServices();
+        this.accessories.set(accessory.context.sideID, bedPrivacyAccessory);
+        break;
       default:
-      this.log.debug("Unknown accessory type. Removing from accessory cache.");
-      this.api.unregisterPlatformAccessories("homebridge-sleepiq", "SleepNumber", [accessory]);
+        this.log.debug("Unknown accessory type. Removing from accessory cache.");
+        this.api.unregisterPlatformAccessories("homebridge-sleepiq", "SleepNumber", [accessory]);
     }
   }
   
@@ -300,6 +435,7 @@ class SleepIQPlatform {
     this.log.debug('Getting SleepIQ JSON Data...')
     var bedData;
     var flexData;
+    // Fetch main data set
     try {
       await this.snapi.familyStatus( (data, err=null) => {
         if (err) {
@@ -316,6 +452,7 @@ class SleepIQPlatform {
       }
     }
     
+    // Check if sign-out occurred and re-authentication is needed
     if(this.snapi.json.hasOwnProperty('Error')) {
       if (this.snapi.json.Error.Code == 50002 || this.snapi.json.Error.Code == 401) {
         this.log.debug('SleepIQ authentication failed, stand by for automatic re-authentication')
@@ -325,33 +462,16 @@ class SleepIQPlatform {
         this.log('SleepIQ authentication failed with an unknown error code. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
       }
     } else {
+      this.log.debug('SleepIQ JSON data successfully retrieved');
       bedData = JSON.parse(JSON.stringify(this.snapi.json));
       
-      if (this.hasFoundation) {
-        try {
-          await this.snapi.foundationStatus( (data, err=null) => {
-            if (err) {
-              this.log.debug(data, err);
-            } else {
-              this.log.debug("Foundation Status GET results:", data);
-            }
-          });          
-        } catch(err) {
-          this.log("Failed to fetch foundation status:", err);
-        }
-        
-        flexData = JSON.parse(JSON.stringify(this.snapi.json));
-      }
-      
-      
-      this.log.debug('SleepIQ JSON data successfully retrieved');
-      this.parseData(bedData, flexData);
+      this.parseData(bedData);
       
     }
     
   }
   
-  parseData (bedData, flexData) {
+  parseData (bedData) {
     if (bedData.beds) {
       bedData.beds.forEach(async function (bed, index) {
         let bedID = bed.bedId
@@ -359,6 +479,7 @@ class SleepIQPlatform {
         delete sides.status
         delete sides.bedId
         
+        // check if new privacy switch detected
         if (!this.accessories.has(bedID+'privacy')) {
           this.log("New privacy switch detected.");
           this.addAccessories();
@@ -366,6 +487,7 @@ class SleepIQPlatform {
         } else {
           this.snapi.bedID = bedID;
           
+          // check privacy status
           try {
             await this.snapi.bedPauseMode( (data, err=null) => {
               if (err) {
@@ -378,6 +500,7 @@ class SleepIQPlatform {
             this.log('Failed to retrieve bed pause mode:', err);
           }
           
+          // update privacy status
           let privacyData = JSON.parse(JSON.stringify(this.snapi.json));
           this.log.debug('SleepIQ Privacy Mode: ' + privacyData.pauseMode);
           let bedPrivacyAccessory = this.accessories.get(bedID+'privacy');
@@ -387,34 +510,119 @@ class SleepIQPlatform {
         let anySideOccupied = false;
         
         if (sides) {
-          Object.keys(sides).forEach(function (bedside, index) {
+          // check data on each bed side
+          Object.keys(sides).forEach(async function (bedside, index) {
             let sideID = bedID+bedside
+
+            // check if new side detected
             if(!this.accessories.has(sideID+'occupancy') || !this.accessories.has(sideID+'number')) {
               this.log("New bedside detected.")
               this.addAccessories();
               return
             } else {
+              // update side occupancy
               let thisSideOccupied = sides[bedside].isInBed;
               this.log.debug('SleepIQ Occupancy Data: {' + bedside + ':' + thisSideOccupied + '}')
               let bedSideOccAccessory = this.accessories.get(sideID+'occupancy');
               bedSideOccAccessory.setOccupancyDetected(thisSideOccupied);
               anySideOccupied = anySideOccupied || thisSideOccupied;
               
+              // update side number
               this.log.debug('SleepIQ Sleep Number: {' + bedside + ':' + sides[bedside].sleepNumber + '}')
               let bedSideNumAccessory = this.accessories.get(sideID+'number');
               bedSideNumAccessory.updateSleepNumber(sides[bedside].sleepNumber);
               
+              // check foundation data
               if (this.hasFoundation) {
-                if (bedside == 'leftSide') {
-                  this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsLeftHeadPosition + ", Foot:" + flexData.fsLeftFootPosition + '}')
-                  let bedSideFlexLeftAccessory = this.accessories.get(sideID+'flex');
-                  bedSideFlexLeftAccessory.updateFoundation(flexData.fsLeftHeadPosition, flexData.fsLeftFootPosition);
-                } else {
-                  this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsRightHeadPosition + ", Foot:" + flexData.fsRightFootPosition + '}')
-                  let bedSideFlexRightAccessory = this.accessories.get(sideID+'flex');
-                  bedSideFlexRightAccessory.updateFoundation(flexData.fsRightHeadPosition, flexData.fsRightFootPosition);
+                // fetch foundation data
+                try {
+                  await this.snapi.foundationStatus( (data, err=null) => {
+                    if (err) {
+                      this.log.debug(data, err);
+                    } else {
+                      this.log.debug("Foundation Status GET results:", data);
+                      let flexData = JSON.parse(JSON.stringify(this.snapi.json));
+
+                      // update foundation data
+                      if (bedside == 'leftSide') {
+                        this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsLeftHeadPosition + ", Foot:" + flexData.fsLeftFootPosition + '}')
+                        let bedSideFlexLeftAccessory = this.accessories.get(sideID+'flex');
+                        bedSideFlexLeftAccessory.updateFoundation(flexData.fsLeftHeadPosition, flexData.fsLeftFootPosition);
+                      } else {
+                        this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsRightHeadPosition + ", Foot:" + flexData.fsRightFootPosition + '}')
+                        let bedSideFlexRightAccessory = this.accessories.get(sideID+'flex');
+                        bedSideFlexRightAccessory.updateFoundation(flexData.fsRightHeadPosition, flexData.fsRightFootPosition);
+                      }
+                    }
+                  });          
+                } catch(err) {
+                  this.log("Failed to fetch foundation status:", err);
                 }
-              }
+
+                // check outlet data
+                if (this.hasOutlets) {
+                  // fetch outlet data
+                  try {
+                    await this.snapi.outletStatus(bedSide === 'rightSide' ? '1' : '2', (data, err=null) => {
+                      if (err) {
+                        this.log.debug(data, err);
+                      } else {
+                        this.log.debug("outletStatus result:", data);
+                        let outletStatus = JSON.parse(data);
+                        if(outletStatus.hasOwnProperty('Error')) {
+                          if (outletStatus.Error.Code === 404) {
+                            this.log('No outlet detected');
+                          } else {
+                            this.log('Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
+                          }
+                        } else {
+                          this.log.debug("Outlet Status GET results:", data);
+                          let outletData = JSON.parse(JSON.stringify(this.snapi.json));
+
+                          // update outlet data
+                          this.log.debug('SleepIQ outlet Data: {' + bedside + ':' + outletData.setting + '}');
+                          let outletAccessory = this.accessories.get(sideID+'outlet');
+                          outletAccessory.updateLightStrip(outletData.setting);
+                        }
+                      }
+                    });
+                  } catch(err) {
+                    this.log('Failed to fetch outlet status:', err);
+                  }
+                } // if(this.hasOutlets)
+
+                // check lightstrip data
+                if (this.hasLightstrips) {
+                  // fetch lightstrip data
+                  try {
+                    await this.snapi.outletStatus(bedSide === 'rightSide' ? '3' : '4', (data, err=null) => {
+                      if (err) {
+                        this.log.debug(data, err);
+                      } else {
+                        this.log.debug("outletStatus result:", data);
+                        let outletStatus = JSON.parse(data);
+                        if(outletStatus.hasOwnProperty('Error')) {
+                          if (outletStatus.Error.Code === 404) {
+                            this.log('No lightstrip detected');
+                          } else {
+                            this.log('Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
+                          }
+                        } else {
+                          this.log.debug("Lightstrip Status GET results:", data);
+                          let lightstripData = JSON.parse(JSON.stringify(this.snapi.json));
+
+                          // update lightstrip data
+                          this.log.debug('SleepIQ lightstrip Data: {' + bedside + ':' + lightstripData.setting + '}');
+                          let lightstripAccessory = this.accessories.get(sideID+'lightstrip');
+                          lightstripAccessory.updateLightStrip(lightstripData.setting);
+                        }
+                      }
+                    });
+                  } catch(err) {
+                    this.log('Failed to fetch lightstrip status:', err);
+                  }
+                } // if(this.hasLightstrips)
+              } // if(this.hasFoundation)
             }
           }.bind(this))  
         } else {
@@ -716,4 +924,131 @@ class snPrivacy {
   }
 }
 
+
+class snOutlet {
+  constructor (log, accessory, snapi) {
+    this.log = log;
+    this.accessory = accessory;
+    this.snapi = snapi;
+    this.outlet = '0';
+    this.sideName = this.accessory.context.sideName;
+    
+    this.outletService = this.accessory.getService(Service.Outlet);
+    
+    this.getOutlet = this.getOutlet.bind(this);
+    this.setOutlet = this.setOutlet.bind(this);
+    this.updateOutlet = this.updateOutlet.bind(this);
+  }
+  
+  // Send a new Outlet value to the bed
+  setOutlet (value) {
+    let side = this.accessory.context.side;
+    this.log.debug('Setting outlet on side='+side+' to='+value);
+    try {
+      this.snapi.outlet(sideName == 'rightSide' ? '1' : '2', value ? '1' : '0', (data, err=null) => {
+        if (err) {
+          this.log.debug(data, err);
+        } else {
+          this.log.debug("outlet PUT result:", data)
+        }
+      });
+    } catch(err) {
+      this.log('Failed to set outlet on side='+side+' to='+value+' :', err);
+    }
+  }
+  
+  // Keep Outlet mode updated with external changes through sleepIQ app
+  updateOutlet(value) {
+    this.outlet = value;
+  }
+  
+  getOutlet (callback) {
+    return callback(null, this.outlet == '1' ? true : false);
+  }
+  
+  
+  getServices () {
+    
+    let informationService = this.accessory.getService(Service.AccessoryInformation);
+    informationService
+    .setCharacteristic(Characteristic.Manufacturer, "Sleep Number")
+    .setCharacteristic(Characteristic.Model, "SleepIQ")
+    .setCharacteristic(Characteristic.SerialNumber, "360");
+    
+    this.outletService
+    .getCharacteristic(Characteristic.On)
+    .on('set', function (value, callback) {
+      this.log.debug("Outlet -> "+value);
+      this.setOutlet(value);
+      callback();
+    }.bind(this))
+    .on('get', this.getOutlet);
+    
+    return [informationService, this.outletService]
+  }
+}
+
+
+class snLightStrip {
+  constructor (log, accessory, snapi) {
+    this.log = log;
+    this.accessory = accessory;
+    this.snapi = snapi;
+    this.lightStrip = '0';
+    this.sideName = this.accessory.context.sideName;
+    
+    this.LightStripService = this.accessory.getService(Service.Lightbulb);
+    
+    this.getLightStrip = this.getLightStrip.bind(this);
+    this.setLightStrip = this.setLightStrip.bind(this);
+    this.updateLightStrip = this.updateLightStrip.bind(this);
+  }
+  
+  // Send a new LightStrip value to the bed
+  setLightStrip (value) {
+    let side = this.accessory.context.side;
+    this.log.debug('Setting light-strip on side='+side+' to='+value);
+    try {
+      this.snapi.outlet(sideName == 'rightSide' ? '3' : '4', value ? '1' : '0', (data, err=null) => {
+        if (err) {
+          this.log.debug(data, err);
+        } else {
+          this.log.debug("light-strip PUT result:", data)
+        }
+      });
+    } catch(err) {
+      this.log('Failed to set light-strip on side='+side+' to='+value+' :', err);
+    }
+  }
+  
+  // Keep light-strip mode updated with external changes through sleepIQ app
+  updateLightStrip(value) {
+    this.lightStrip = value;
+  }
+  
+  getLightStrip (callback) {
+    return callback(null, this.lightStrip == '1' ? true : false);
+  }
+  
+  
+  getServices () {
+    
+    let informationService = this.accessory.getService(Service.AccessoryInformation);
+    informationService
+    .setCharacteristic(Characteristic.Manufacturer, "Sleep Number")
+    .setCharacteristic(Characteristic.Model, "SleepIQ")
+    .setCharacteristic(Characteristic.SerialNumber, "360");
+    
+    this.LightStripService
+    .getCharacteristic(Characteristic.On)
+    .on('set', function (value, callback) {
+      this.log.debug("LightStrip -> "+value);
+      this.setLightStrip(value);
+      callback();
+    }.bind(this))
+    .on('get', this.getLightStrip);
+    
+    return [informationService, this.LightStripService]
+  }
+}
 
