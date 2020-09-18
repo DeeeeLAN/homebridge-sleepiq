@@ -487,7 +487,7 @@ class API {
 	}
 	
 	// num must be between 1 and 4 (1 and 2 are plugs, 3 and 4 control the light-strips)
-	outletStatus (num) {
+	outletStatus (num, callback=null) {
 		return request({
 			method: 'GET',
 			uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/outlet',
