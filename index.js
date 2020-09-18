@@ -713,9 +713,8 @@ class snNumber {
   }
   
   // Send a new sleep number to the bed
-  setSleepNumber (rawValue) {
+  setSleepNumber (value) {
     let side = this.accessory.context.side;
-    let value = Math.max(rawValue - rawValue % 5, 5);
     this.log.debug('Setting sleep number='+value+' on side='+side);
     try {
       this.snapi.sleepNumber(side, value, (data, err=null) => {
@@ -756,6 +755,11 @@ class snNumber {
       callback()
     }.bind(this))
     .on('get', this.getSleepNumber.bind(this))
+    .setProps({
+      minValue: 5,
+      maxValue: 100,
+      minStep: 5
+    });
     
     this.numberService
     .getCharacteristic(Characteristic.On)
