@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.3 (2020-09-19)
+
+### Bug Fixes
+
+- Fixed a bug breaking the outlets, lightstrips, and foot warmer from functioning. 
+
 ## v4.1.2 (2020-09-18)
 
 ### Bug Fixes

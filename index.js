@@ -631,7 +631,7 @@ class SleepIQPlatform {
                 if (this.hasOutlets) {
                   // fetch outlet data
                   try {
-                    await this.snapi.outletStatus(bedSide === 'rightSide' ? '1' : '2', (data, err=null) => {
+                    await this.snapi.outletStatus(bedside === 'rightSide' ? '1' : '2', (data, err=null) => {
                       if (err) {
                         this.log.debug(data, err);
                       } else {
@@ -663,7 +663,7 @@ class SleepIQPlatform {
                 if (this.hasLightstrips) {
                   // fetch lightstrip data
                   try {
-                    await this.snapi.outletStatus(bedSide === 'rightSide' ? '3' : '4', (data, err=null) => {
+                    await this.snapi.outletStatus(bedside === 'rightSide' ? '3' : '4', (data, err=null) => {
                       if (err) {
                         this.log.debug(data, err);
                       } else {
@@ -712,7 +712,7 @@ class SleepIQPlatform {
                           let footWarmerData = JSON.parse(JSON.stringify(this.snapi.json));
 
                           // update foot warmer data
-                          if (bedSide === 'leftSide') {
+                          if (bedside === 'leftSide') {
                             this.log.debug('SleepIQ foot warmer Data: {' + bedside + ':' + footWarmerData.footWarmingTempLeft + '}');
                             let footWarmerAccessory = this.accessories.get(sideID+'footwarmer');
                             footWarmerAccessory.updateFootWarmer(footWarmerData.footWarmingTempLeft);
