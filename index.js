@@ -611,6 +611,47 @@ class SleepIQPlatform {
           let bedPrivacyAccessory = this.accessories.get(bedID+'privacy');
           bedPrivacyAccessory.updatePrivacy(privacyData.pauseMode);
         }
+
+        // Fetch foundation data
+        let flexData;
+        if (this.hasFoundation) {
+          try {
+            await this.snapi.foundationStatus((data, err=null) => {
+              if (err) {
+                this.log.debug(data, err);
+              } else {
+                this.log.debug("Foundation Status GET results:", data);
+                flexData = JSON.parse(data);
+              }
+            });          
+          } catch(err) {
+            this.log("Failed to fetch foundation status:", err);
+          }
+        }
+        
+        // fetch foot warmer data
+        let footWarmerData;
+        if (this.hasWarmers) {
+          try {
+            await this.snapi.footWarmingStatus((data, err=null) => {
+              if (err) {
+                this.log.debug(data, err);
+              } else {
+                this.log.debug("Foot Warmer Status GET results:", data);
+                footWarmerData = JSON.parse(data);
+                if(footWarmerData.hasOwnProperty('Error')) {
+                  if (footWarmerData.Error.Code === 404) {
+                    this.log('No foot warmer detected');
+                  } else {
+                    this.log('Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
+                  }
+                }
+              }
+            });
+          } catch(err) {
+            this.log('Failed to fetch foot warmer status:', err);
+          }
+        }
         
         let anySideOccupied = false;
         
@@ -637,31 +678,18 @@ class SleepIQPlatform {
               let bedSideNumAccessory = this.accessories.get(sideID+'number');
               bedSideNumAccessory.updateSleepNumber(sides[bedside].sleepNumber);
               
-              // check foundation data
+              // update foundation data
               if (this.hasFoundation) {
-                // fetch foundation data
-                try {
-                  await this.snapi.foundationStatus( (data, err=null) => {
-                    if (err) {
-                      this.log.debug(data, err);
-                    } else {
-                      this.log.debug("Foundation Status GET results:", data);
-                      let flexData = JSON.parse(JSON.stringify(this.snapi.json));
-
-                      // update foundation data
-                      if (bedside == 'leftSide') {
-                        this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsLeftHeadPosition + ", Foot:" + flexData.fsLeftFootPosition + '}')
-                        let bedSideFlexLeftAccessory = this.accessories.get(sideID+'flex');
-                        bedSideFlexLeftAccessory.updateFoundation(flexData.fsLeftHeadPosition, flexData.fsLeftFootPosition);
-                      } else {
-                        this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsRightHeadPosition + ", Foot:" + flexData.fsRightFootPosition + '}')
-                        let bedSideFlexRightAccessory = this.accessories.get(sideID+'flex');
-                        bedSideFlexRightAccessory.updateFoundation(flexData.fsRightHeadPosition, flexData.fsRightFootPosition);
-                      }
-                    }
-                  });          
-                } catch(err) {
-                  this.log("Failed to fetch foundation status:", err);
+                if (flexData) {
+                  if (bedside == 'leftSide') {
+                    this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsLeftHeadPosition + ", Foot:" + flexData.fsLeftFootPosition + '}')
+                    let bedSideFlexLeftAccessory = this.accessories.get(sideID+'flex');
+                    bedSideFlexLeftAccessory.updateFoundation(flexData.fsLeftHeadPosition, flexData.fsLeftFootPosition);
+                  } else {
+                    this.log.debug('SleepIQ Flex Data: {' + bedside + ': Head: ' + flexData.fsRightHeadPosition + ", Foot:" + flexData.fsRightFootPosition + '}')
+                    let bedSideFlexRightAccessory = this.accessories.get(sideID+'flex');
+                    bedSideFlexRightAccessory.updateFoundation(flexData.fsRightHeadPosition, flexData.fsRightFootPosition);
+                  }
                 }
 
                 // check outlet data
@@ -672,18 +700,15 @@ class SleepIQPlatform {
                       if (err) {
                         this.log.debug(data, err);
                       } else {
-                        this.log.debug("outletStatus result:", data);
-                        let outletStatus = JSON.parse(data);
-                        if(outletStatus.hasOwnProperty('Error')) {
-                          if (outletStatus.Error.Code === 404) {
+                        this.log.debug("Outlet Status GET results:", data);
+                        let outletData = JSON.parse(data);
+                        if(outletData.hasOwnProperty('Error')) {
+                          if (outletData.Error.Code === 404) {
                             this.log('No outlet detected');
                           } else {
                             this.log('Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
                           }
                         } else {
-                          this.log.debug("Outlet Status GET results:", data);
-                          let outletData = JSON.parse(JSON.stringify(this.snapi.json));
-
                           // update outlet data
                           this.log.debug('SleepIQ outlet Data: {' + bedside + ':' + outletData.setting + '}');
                           let outletAccessory = this.accessories.get(sideID+'outlet');
@@ -704,18 +729,15 @@ class SleepIQPlatform {
                       if (err) {
                         this.log.debug(data, err);
                       } else {
-                        this.log.debug("outletStatus result:", data);
-                        let outletStatus = JSON.parse(data);
-                        if(outletStatus.hasOwnProperty('Error')) {
-                          if (outletStatus.Error.Code === 404) {
+                        this.log.debug("Lightstrip Status GET results:", data);
+                        let lightstripData = JSON.parse(data);
+                        if(lightstripData.hasOwnProperty('Error')) {
+                          if (lightstripData.Error.Code === 404) {
                             this.log('No lightstrip detected');
                           } else {
                             this.log('Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
                           }
                         } else {
-                          this.log.debug("Lightstrip Status GET results:", data);
-                          let lightstripData = JSON.parse(JSON.stringify(this.snapi.json));
-
                           // update lightstrip data
                           this.log.debug('SleepIQ lightstrip Data: {' + bedside + ':' + lightstripData.setting + '}');
                           let lightstripAccessory = this.accessories.get(sideID+'lightstrip');
@@ -728,41 +750,18 @@ class SleepIQPlatform {
                   }
                 } // if(this.hasLightstrips)
 
-                // check foot warmer data
-                if (this.hasWarmer) {
-                  // fetch foot warmer data
-                  try {
-                    await this.snapi.footWarmingStatus((data, err=null) => {
-                      if (err) {
-                        this.log.debug(data, err);
-                      } else {
-                        this.log.debug("footWarmerStatus result:", data);
-                        let footWarmerStatus = JSON.parse(data);
-                        if(footWarmerStatus.hasOwnProperty('Error')) {
-                          if (footWarmerStatus.Error.Code === 404) {
-                            this.log('No foot warmer detected');
-                          } else {
-                            this.log('Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new');
-                          }
-                        } else {
-                          this.log.debug("Foot Warmer Status GET results:", data);
-                          let footWarmerData = JSON.parse(JSON.stringify(this.snapi.json));
-
-                          // update foot warmer data
-                          if (bedside === 'leftSide') {
-                            this.log.debug('SleepIQ foot warmer Data: {' + bedside + ':' + footWarmerData.footWarmingTempLeft + '}');
-                            let footWarmerAccessory = this.accessories.get(sideID+'footwarmer');
-                            footWarmerAccessory.updateFootWarmer(footWarmerData.footWarmingTempLeft);
-                          } else {
-                            this.log.debug('SleepIQ foot warmer Data: {' + bedside + ':' + footWarmerData.footWarmingTempRight + '}');
-                            let footWarmerAccessory = this.accessories.get(sideID+'footwarmer');
-                            footWarmerAccessory.updateFootWarmer(footWarmerData.footWarmingTempRight);
-                          }
-                        }
-                      }
-                    });
-                  } catch(err) {
-                    this.log('Failed to fetch foot warmer status:', err);
+                // update foot warmer data
+                if (this.hasWarmers) {
+                  if (footWarmerData) {
+                    if (bedside === 'leftSide') {
+                      this.log.debug('SleepIQ foot warmer Data: {' + bedside + ':' + footWarmerData.footWarmingTempLeft + '}');
+                      let footWarmerAccessory = this.accessories.get(sideID+'footwarmer');
+                      footWarmerAccessory.updateFootWarmer(footWarmerData.footWarmingTempLeft);
+                    } else {
+                      this.log.debug('SleepIQ foot warmer Data: {' + bedside + ':' + footWarmerData.footWarmingTempRight + '}');
+                      let footWarmerAccessory = this.accessories.get(sideID+'footwarmer');
+                      footWarmerAccessory.updateFootWarmer(footWarmerData.footWarmingTempRight);
+                    }
                   }
                 } // if(this.hasLightstrips)
               } // if(this.hasFoundation)
