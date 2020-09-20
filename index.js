@@ -35,6 +35,7 @@ class SleepIQPlatform {
     }
 
     this.accessories = new Map();
+    this.staleAccessories = []
     this.snapi = new snapi(this.username, this.password);
 
     // Set default available components
@@ -53,12 +54,29 @@ class SleepIQPlatform {
     }
     
   }
+
+  removeMarkedAccessories () {
+    this.log.debug("Checking accessories for any marked for removal");
+
+    for (const index in this.staleAccessories) {
+      const accessory = this.staleAccessories[index]
+      if (accessory.context && accessory.context.remove === true) {
+        this.log.debug("Removing accessory:", accessory.displayName)
+        this.api.unregisterPlatformAccessories("homebridge-sleepiq", accessory._associatedPlatform, [accessory]);
+        this.staleAccessories.splice(this.staleAccessories.indexOf(index))
+      }
+    }
+  }
   
   async didFinishLaunching () {
+
+    this.removeMarkedAccessories();
+
     await this.authenticate();
     if (!this.snapi.key) {
       return;
     }
+
     await this.addAccessories();
     setInterval(this.fetchData.bind(this), this.refreshTime); // continue to grab data every few seconds
   }
@@ -434,11 +452,27 @@ class SleepIQPlatform {
     if (this.disabled) {
       return false;
     }
+
+    // call each loop in case the new accessory is a duplicate of a stale accessory. 
+    // If the new one is the stale one, homebridge will crash due to the UUID conflict. 
+    this.removeMarkedAccessories();
+
     this.log("Configuring Cached Accessory: ", accessory.displayName, "UUID: ", accessory.UUID);
+
+    // remove old privacy accessory
+    if (accessory.displayName.slice(-7) === 'privacy') {
+      if (!accessory.context.bedName) {
+        this.log("Stale accessory. Marking for removal");
+        accessory.context.remove = true;
+        this.staleAccessories.push(accessory);
+        return;
+      }
+    }
     
     if (accessory.displayName.slice(-4) === 'Side') {
-      this.log("Stale accessory. Removing");
-      this.api.unregisterPlatformAccessories("homebridge-sleepiq", "SleepNumber", [accessory]);
+      this.log("Stale accessory. Marking for removal");
+      accessory.context.remove = true;
+      this.staleAccessories.push(accessory);
       return;
     }            
     
@@ -446,7 +480,8 @@ class SleepIQPlatform {
       this.log("Duplicate accessory detected in cache: ", accessory.displayName, "If this appears incorrect, file a ticket on github. Removing duplicate accessory from cache.");
       this.log("You might need to restart homebridge to clear out the old data, especially if the accessory UUID got duplicated.");
       this.log("If the issue persists, try clearing your accessory cache.");
-      this.api.unregisterPlatformAccessories("homebridge-sleepiq", "SleepNumber", [accessory]);
+      accessory.context.remove = true;
+      this.staleAccessories.push(accessory);
       return;
     }
     
@@ -494,8 +529,10 @@ class SleepIQPlatform {
         this.accessories.set(accessory.context.sideID, bedPrivacyAccessory);
         break;
       default:
-        this.log.debug("Unknown accessory type. Removing from accessory cache.");
-        this.api.unregisterPlatformAccessories("homebridge-sleepiq", "SleepNumber", [accessory]);
+        this.log("Unknown accessory type. Removing from accessory cache.");
+        accessory.context.remove = true;
+        this.staleAccessories.push(accessory);
+        return;
     }
   }
   

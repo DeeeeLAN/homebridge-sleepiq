@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.5 (2020-09-20)
+
+### Bug Fixes
+
+- You no longer need to manually clear cache or remove `bed0privacy` from the cache if you are updating from a pre-v4.0.0 release to this release. 
+  - Sorry to everybody who has already done this! I should have fixed this the first time around to save you the trouble, but I wasn't thinking about it at the time. 
+
 ## v4.1.4 (2020-09-19)
 
 ### Bug Fixes
