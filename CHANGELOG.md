@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.6 (2020-09-20)
+
+### Bug Fixes
+
+- Fixed bug in foot-warmer data processor. 
+
 ## v4.1.5 (2020-09-20)
 
 ### Bug Fixes
