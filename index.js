@@ -650,7 +650,7 @@ class SleepIQPlatform {
                           // update outlet data
                           this.log.debug('SleepIQ outlet Data: {' + bedside + ':' + outletData.setting + '}');
                           let outletAccessory = this.accessories.get(sideID+'outlet');
-                          outletAccessory.updateLightStrip(outletData.setting);
+                          outletAccessory.updateOutlet(outletData.setting);
                         }
                       }
                     });
@@ -897,6 +897,18 @@ class snFlex {
     
   }
   
+
+  waitForBedToStopMoving (fn, value, delay) {
+    let timeOutId;
+    return function() {
+      if(timeOutId) {
+        clearTimeout(timeOutId);
+      }
+      timeOutId = setTimeout(() => {
+        fn(value);
+      },delay);
+    }()
+  }
   
   // Send a new foundation position to the bed
   setFoundation (actuator, value) {

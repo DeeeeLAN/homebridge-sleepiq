@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.4 (2020-09-19)
+
+### Bug Fixes
+
+- Fixed `updateLightStrip` error that was crashing homebridge
+
 ## v4.1.3 (2020-09-19)
 
 ### Bug Fixes
