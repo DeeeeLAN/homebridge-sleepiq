@@ -27,6 +27,7 @@ class SleepIQPlatform {
     this.refreshTime = (config["refreshTime"] || 5) * 1000; // update values from SleepIQ every 5 seconds
     this.sendDelay = (config["sendDelay"] || 2) * 1000; // delay updating bed numbers by 2 seconds
     this.warmingTimer = (config["warmingTimer"] || '6h'); // default timer for foot warming is 6h
+    this.ignoreList = (config["ignoreList"] || []).map(item => item.uuid); // UUIDs to ignore
 
     if (!this.username || !this.password) {
       log.warn("Ignoring SleepIQ setup because username or password was not provided.");
@@ -35,6 +36,7 @@ class SleepIQPlatform {
     }
 
     this.accessories = new Map();
+    this.ignoredAccessories = new Map();
     this.staleAccessories = []
     this.snapi = new snapi(this.username, this.password);
 
@@ -292,43 +294,58 @@ class SleepIQPlatform {
 
       // Check if bed has privacy mode
       if(!this.accessories.has(bedID+'privacy')) {
-        this.log("Found Bed Privacy Switch: ", bedName);
-        
         let uuid = UUIDGen.generate(bedID+'privacy');
-        let bedPrivacy = new Accessory(bedName+'privacy', uuid);
-        
-        bedPrivacy.context.sideID = bedID+'privacy';
-        bedPrivacy.context.type = 'privacy';
-        bedPrivacy.context.bedName = bedName;
-        
-        bedPrivacy.addService(Service.Switch, bedName+'Privacy');
-        
-        let bedPrivacyAccessory = new snPrivacy(this.log, bedPrivacy, this.snapi);
-        bedPrivacyAccessory.getServices();
-        
-        this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedPrivacy]);
-        this.accessories.set(bedID+'privacy', bedPrivacyAccessory);
+
+        if (!this.ignoreList.includes(uuid)) {
+          this.log("Found Bed Privacy Switch:", bedName, "UUID:", uuid);
+          
+          let bedPrivacy = new Accessory(bedName+'privacy', uuid);
+          
+          bedPrivacy.context.sideID = bedID+'privacy';
+          bedPrivacy.context.type = 'privacy';
+          bedPrivacy.context.bedName = bedName;
+          
+          bedPrivacy.addService(Service.Switch, bedName+'Privacy');
+          
+          let bedPrivacyAccessory = new snPrivacy(this.log, bedPrivacy, this.snapi);
+          bedPrivacyAccessory.getServices();
+          
+          this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedPrivacy]);
+          this.accessories.set(bedID+'privacy', bedPrivacyAccessory);
+        } else {
+          this.log(bedName + " privacy UUID on ignore list. Skipping");
+        }
       } else {
         this.log(bedName + " privacy already added from cache");
       }
       
       // function to register an occupancy sensor
       const registerOccupancySensor = (sideName, sideID) => {
-        this.log("Found BedSide Occupancy Sensor: ", sideName);
-        
-        let uuid = UUIDGen.generate(sideID+'occupancy');
-        let bedSideOcc = new Accessory(sideName+'occupancy', uuid);
-        
-        bedSideOcc.context.sideID = sideID+'occupancy';
-        bedSideOcc.context.type = 'occupancy';
-        
-        bedSideOcc.addService(Service.OccupancySensor, sideName+'Occupancy');
-        
-        let bedSideOccAccessory = new snOccupancy(this.log, bedSideOcc);
-        bedSideOccAccessory.getServices();
-        
-        this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideOcc]);
-        this.accessories.set(sideID+'occupancy', bedSideOccAccessory);
+
+        if(!this.accessories.has(sideID+'occupancy')) {
+          let uuid = UUIDGen.generate(sideID+'occupancy');
+
+          if (!this.ignoreList.includes(uuid)) {
+            this.log("Found BedSide Occupancy Sensor:", sideName, "UUID:", uuid);
+            
+            let bedSideOcc = new Accessory(sideName+'occupancy', uuid);
+            
+            bedSideOcc.context.sideID = sideID+'occupancy';
+            bedSideOcc.context.type = 'occupancy';
+            
+            bedSideOcc.addService(Service.OccupancySensor, sideName+'Occupancy');
+            
+            let bedSideOccAccessory = new snOccupancy(this.log, bedSideOcc);
+            bedSideOccAccessory.getServices();
+            
+            this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideOcc]);
+            this.accessories.set(sideID+'occupancy', bedSideOccAccessory);
+          } else {
+            this.log(sideName + " occupancy UUID on ignore list. Skipping");
+          }
+        } else {
+          this.log(sideName + " occupancy already added from cache");
+        }
       }
       
       // loop through each bed side
@@ -338,33 +355,34 @@ class SleepIQPlatform {
           let sideID = bedID+bedside
 
           // register side occupancy sensor
-          if(!this.accessories.has(sideID+'occupancy')) {
-            registerOccupancySensor(sideName, sideID);
-          } else {
-            this.log(sideName + " occupancy already added from cache");
-          }
+          registerOccupancySensor(sideName, sideID);
           
           // register side number control
           if (!this.accessories.has(sideID+'number')) {
-            this.log("Found BedSide Number Control: ", sideName);
-            
             let uuid = UUIDGen.generate(sideID+'number');
-            let bedSideNum = new Accessory(sideName+'number', uuid);
-            
-            bedSideNum.context.side = bedside[0].toUpperCase();
-            bedSideNum.context.sideID = sideID+'number';
-            bedSideNum.context.sideName = sideName;
-            bedSideNum.context.type = 'number';
-            
-            bedSideNum.addService(Service.Lightbulb, sideName+'Number');
-            let numberService = bedSideNum.getService(Service.Lightbulb, sideName+'Number');
-            numberService.addCharacteristic(Characteristic.Brightness);
-            
-            let bedSideNumAccessory = new snNumber(this.log, bedSideNum, this.snapi);
-            bedSideNumAccessory.getServices();
-            
-            this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideNum])
-            this.accessories.set(sideID+'number', bedSideNumAccessory);
+
+            if (!this.ignoreList.includes(uuid)) {
+              this.log("Found BedSide Number Control:", sideName, "UUID:", uuid);
+              
+              let bedSideNum = new Accessory(sideName+'number', uuid);
+              
+              bedSideNum.context.side = bedside[0].toUpperCase();
+              bedSideNum.context.sideID = sideID+'number';
+              bedSideNum.context.sideName = sideName;
+              bedSideNum.context.type = 'number';
+              
+              bedSideNum.addService(Service.Lightbulb, sideName+'Number');
+              let numberService = bedSideNum.getService(Service.Lightbulb, sideName+'Number');
+              numberService.addCharacteristic(Characteristic.Brightness);
+              
+              let bedSideNumAccessory = new snNumber(this.log, bedSideNum, this.snapi);
+              bedSideNumAccessory.getServices();
+              
+              this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideNum])
+              this.accessories.set(sideID+'number', bedSideNumAccessory);
+            } else {
+              this.log(sideName + " number control UUID on ignore list. Skipping");
+            }
           } else {
             this.log(sideName + " number control already added from cache");
           }
@@ -373,26 +391,31 @@ class SleepIQPlatform {
           if (this.hasFoundation) {
             // register side foundation head and foot control units
             if (!this.accessories.has(sideID+'flex')) {
-              this.log("Found BedSide Flex Foundation: ", sideName);
-              
               let uuid = UUIDGen.generate(sideID+'flex');
-              let bedSideFlex = new Accessory(sideName+'flex', uuid);
-              
-              bedSideFlex.context.side = bedside[0].toUpperCase();
-              bedSideFlex.context.sideID = sideID+'flex';
-              bedSideFlex.context.sideName = sideName;
-              bedSideFlex.context.type = 'flex';
-              
-              bedSideFlex.addService(Service.Lightbulb, sideName+'FlexHead', 'head')
-              .addCharacteristic(Characteristic.Brightness);
-              bedSideFlex.addService(Service.Lightbulb, sideName+'FlexFoot', 'foot')
-              .addCharacteristic(Characteristic.Brightness);
-              
-              let bedSideFlexAccessory = new snFlex(this.log, bedSideFlex, this.snapi);
-              bedSideFlexAccessory.getServices();
-              
-              this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideFlex])
-              this.accessories.set(sideID+'flex', bedSideFlexAccessory)
+
+              if (!this.ignoreList.includes(uuid)) {
+                this.log("Found BedSide Flex Foundation:", sideName, "UUID:", uuid);
+                
+                let bedSideFlex = new Accessory(sideName+'flex', uuid);
+                
+                bedSideFlex.context.side = bedside[0].toUpperCase();
+                bedSideFlex.context.sideID = sideID+'flex';
+                bedSideFlex.context.sideName = sideName;
+                bedSideFlex.context.type = 'flex';
+                
+                bedSideFlex.addService(Service.Lightbulb, sideName+'FlexHead', 'head')
+                .addCharacteristic(Characteristic.Brightness);
+                bedSideFlex.addService(Service.Lightbulb, sideName+'FlexFoot', 'foot')
+                .addCharacteristic(Characteristic.Brightness);
+                
+                let bedSideFlexAccessory = new snFlex(this.log, bedSideFlex, this.snapi);
+                bedSideFlexAccessory.getServices();
+                
+                this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideFlex])
+                this.accessories.set(sideID+'flex', bedSideFlexAccessory)
+              } else {
+                this.log(sideName + " flex foundation UUID on ignore list. Skipping");
+              }
             } else {
               this.log(sideName + " flex foundation already added from cache")
             }
@@ -401,23 +424,28 @@ class SleepIQPlatform {
             if ((sideName === 'rightSide' && this.hasOutletRight) || (sideName === 'leftSide' && this.hasOutletLeft)) {
               if (!this.accessories.has(sideID+'outlet')) {
                 // register outlet
-                this.log("Found BedSide Outlet: ", sideName);
-        
                 let uuid = UUIDGen.generate(sideID+'outlet');
-                let bedSideOutlet = new Accessory(sideName+'outlet', uuid);
-                
-                bedSideOutlet.context.side = bedside[0].toUpperCase();
-                bedSideOutlet.context.sideID = sideID+'outlet';
-                bedSideOutlet.context.sideName = sideName;
-                bedSideOutlet.context.type = 'outlet';
-                
-                bedSideOutlet.addService(Service.Outlet, sideName+'Outlet')
-                
-                let bedSideOutletAccessory = new snOutlet(this.log, bedSideOutlet, this.snapi);
-                bedSideOutletAccessory.getServices();
-                
-                this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideOutlet])
-                this.accessories.set(sideID+'outlet', bedSideOutletAccessory)
+
+                if (!this.ignoreList.includes(uuid)) {
+                  this.log("Found BedSide Outlet:", sideName, "UUID:", uuid);
+          
+                  let bedSideOutlet = new Accessory(sideName+'outlet', uuid);
+                  
+                  bedSideOutlet.context.side = bedside[0].toUpperCase();
+                  bedSideOutlet.context.sideID = sideID+'outlet';
+                  bedSideOutlet.context.sideName = sideName;
+                  bedSideOutlet.context.type = 'outlet';
+                  
+                  bedSideOutlet.addService(Service.Outlet, sideName+'Outlet')
+                  
+                  let bedSideOutletAccessory = new snOutlet(this.log, bedSideOutlet, this.snapi);
+                  bedSideOutletAccessory.getServices();
+                  
+                  this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideOutlet])
+                  this.accessories.set(sideID+'outlet', bedSideOutletAccessory)
+                } else {
+                  this.log(sideName + " outlet UUID on ignore list. Skipping");
+                }
               } else {
                 this.log(sideName + ' outlet already added from cache')
               }
@@ -427,23 +455,28 @@ class SleepIQPlatform {
             if ((sideName === 'rightSide' && this.hasLightstripRight) || (sideName === 'leftSide' && this.hasLightstripLeft)) {
               if (!this.accessories.has(sideID+'lightstrip')) {
                 // register lightstrip
-                this.log("Found BedSide Lightstrip: ", sideName);
-        
                 let uuid = UUIDGen.generate(sideID+'lightstrip');
-                let bedSideOutlet = new Accessory(sideName+'lightstrip', uuid);
-                
-                bedSideOutlet.context.side = bedside[0].toUpperCase();
-                bedSideOutlet.context.sideID = sideID+'lightstrip';
-                bedSideOutlet.context.sideName = sideName;
-                bedSideOutlet.context.type = 'lightstrip';
-                
-                bedSideOutlet.addService(Service.Lightbulb, sideName+'Lightstrip')
-                
-                let bedSideOutletAccessory = new snLightStrip(this.log, bedSideOutlet, this.snapi);
-                bedSideOutletAccessory.getServices();
-                
-                this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideOutlet])
-                this.accessories.set(sideID+'lightstrip', bedSideOutletAccessory)
+
+                if (!this.ignoreList.includes(uuid)) {
+                  this.log("Found BedSide Lightstrip:", sideName, "UUID:", uuid);
+          
+                  let bedSideOutlet = new Accessory(sideName+'lightstrip', uuid);
+                  
+                  bedSideOutlet.context.side = bedside[0].toUpperCase();
+                  bedSideOutlet.context.sideID = sideID+'lightstrip';
+                  bedSideOutlet.context.sideName = sideName;
+                  bedSideOutlet.context.type = 'lightstrip';
+                  
+                  bedSideOutlet.addService(Service.Lightbulb, sideName+'Lightstrip')
+                  
+                  let bedSideOutletAccessory = new snLightStrip(this.log, bedSideOutlet, this.snapi);
+                  bedSideOutletAccessory.getServices();
+                  
+                  this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideOutlet])
+                  this.accessories.set(sideID+'lightstrip', bedSideOutletAccessory)
+                } else {
+                  this.log(sideName + " lightstrip UUID on ignore list. Skipping");
+                }
               } else {
                 this.log(sideName + ' lightstrip already added from cache')
               }
@@ -453,26 +486,31 @@ class SleepIQPlatform {
             if (this.hasWarmers) {
               // register foot warmer
               if(!this.accessories.has(sideID+'footwarmer')) {
-                this.log("Found BedSide Foot Warmer: ", sideName);
-                    
                 let uuid = UUIDGen.generate(sideID+'footwarmer');
-                let bedSideFootWarmer = new Accessory(sideName+'footwarmer', uuid);
-                
-                bedSideFootWarmer.context.side = bedside[0].toUpperCase();
-                bedSideFootWarmer.context.sideID = sideID+'footwarmer';
-                bedSideFootWarmer.context.sideName = sideName;
-                bedSideFootWarmer.context.type = 'footwarmer';
-                
-                bedSideFootWarmer.addService(Service.Lightbulb, sideName+'FootWarmer');
-                let footwarmerService = bedSideFootWarmer.getService(Service.Lightbulb, sideName+'FootWarmer');
-                footwarmerService.addCharacteristic(Characteristic.Brightness);
 
-                
-                let bedSideFootWarmerAccessory = new snFootWarmer(this.log, bedSideFootWarmer, this.snapi, this.warmingTimer);
-                bedSideFootWarmerAccessory.getServices();
-                
-                this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideFootWarmer])
-                this.accessories.set(sideID+'footwarmer', bedSideFootWarmerAccessory);
+                if (!this.ignoreList.includes(uuid)) {
+                  this.log("Found BedSide Foot Warmer:", sideName, "UUID:", uuid);
+                      
+                  let bedSideFootWarmer = new Accessory(sideName+'footwarmer', uuid);
+                  
+                  bedSideFootWarmer.context.side = bedside[0].toUpperCase();
+                  bedSideFootWarmer.context.sideID = sideID+'footwarmer';
+                  bedSideFootWarmer.context.sideName = sideName;
+                  bedSideFootWarmer.context.type = 'footwarmer';
+                  
+                  bedSideFootWarmer.addService(Service.Lightbulb, sideName+'FootWarmer');
+                  let footwarmerService = bedSideFootWarmer.getService(Service.Lightbulb, sideName+'FootWarmer');
+                  footwarmerService.addCharacteristic(Characteristic.Brightness);
+
+                  
+                  let bedSideFootWarmerAccessory = new snFootWarmer(this.log, bedSideFootWarmer, this.snapi, this.warmingTimer);
+                  bedSideFootWarmerAccessory.getServices();
+                  
+                  this.api.registerPlatformAccessories('homebridge-sleepiq', 'SleepIQ', [bedSideFootWarmer])
+                  this.accessories.set(sideID+'footwarmer', bedSideFootWarmerAccessory);
+                } else {
+                  this.log(sideName + " foot warmer UUID on ignore list. Skipping");
+                }
               } else {
                 this.log(bedName + ' foot warmer already added from cache')
               }
@@ -488,12 +526,8 @@ class SleepIQPlatform {
       // add "anySide" occupancy sensor
       const anySideID = bedID + "anySide";
       const anySideName = bedName + "anySide";
-      if(!this.accessories.has(anySideID+'occupancy')) {
-        // register 'any' side occupancy sensor
-        registerOccupancySensor(anySideName, anySideID);
-      } else {
-        this.log(anySideName + " occupancy already added from cache");
-      }
+      // register 'any' side occupancy sensor
+      registerOccupancySensor(anySideName, anySideID);
 
     }.bind(this))
   }
@@ -516,13 +550,20 @@ class SleepIQPlatform {
 
     this.log("Configuring Cached Accessory: ", accessory.displayName, "UUID: ", accessory.UUID);
 
+    // skip cached accessory
+    if (this.ignoreList.includes(accessory.UUID)) {
+      this.log(accessory.displayName + " UUID on ignore list. Skipping");
+      this.ignoredAccessories.set(accessory.context.sideID, accessory.UUID);
+      return false
+    }
+
     // remove old privacy accessory
     if (accessory.displayName.slice(-7) === 'privacy') {
       if (!accessory.context.bedName) {
         this.log("Stale accessory. Marking for removal");
         accessory.context.remove = true;
         this.staleAccessories.push(accessory);
-        return;
+        return false;
       }
     }
     
@@ -530,16 +571,17 @@ class SleepIQPlatform {
       this.log("Stale accessory. Marking for removal");
       accessory.context.remove = true;
       this.staleAccessories.push(accessory);
-      return;
-    }            
+      return false;
+    }
     
     if (Array.from(this.accessories.values()).map(a => a.accessory.displayName).includes(accessory.displayName)) {
       this.log("Duplicate accessory detected in cache: ", accessory.displayName, "If this appears incorrect, file a ticket on github. Removing duplicate accessory from cache.");
       this.log("You might need to restart homebridge to clear out the old data, especially if the accessory UUID got duplicated.");
       this.log("If the issue persists, try clearing your accessory cache.");
+      accessory.UUID = UUIDGen.generate(`${accessory.context.sideID}duplicate`);
       accessory.context.remove = true;
       this.staleAccessories.push(accessory);
-      return;
+      return false;
     }
     
     switch(accessory.context.type) {
@@ -589,8 +631,9 @@ class SleepIQPlatform {
         this.log("Unknown accessory type. Removing from accessory cache.");
         accessory.context.remove = true;
         this.staleAccessories.push(accessory);
-        return;
+        return false;
     }
+    return true;
   }
   
   async fetchData () {
@@ -643,9 +686,11 @@ class SleepIQPlatform {
         
         // check if new privacy switch detected
         if (!this.accessories.has(bedID+'privacy')) {
-          this.log("New privacy switch detected.");
-          this.addAccessories();
-          return
+          if (!this.ignoreList.has(UUIDGen.generate(bedID+'privacy'))) {
+            this.log("New privacy switch detected.");
+            this.addAccessories();
+            return
+          }
         } else {
           this.snapi.bedID = bedID;
           
@@ -718,10 +763,18 @@ class SleepIQPlatform {
             let sideID = bedID+bedside
 
             // check if new side detected
-            if(!this.accessories.has(sideID+'occupancy') || !this.accessories.has(sideID+'number')) {
-              this.log("New bedside detected.")
-              this.addAccessories();
-              return
+            if(!this.accessories.has(sideID+'occupancy')) {
+              if (!this.ignoreList.has(UUIDGen.generate(sideID+'occupancy'))) {
+                this.log("New bedside detected.")
+                this.addAccessories();
+                return
+              }
+            } else if(!this.accessories.has(sideID+'number')) {
+              if (!this.ignoreList.has(UUIDGen.generate(sideID+'number'))) {
+                this.log("New bedside detected.")
+                this.addAccessories();
+                return
+              }
             } else {
               // update side occupancy
               let thisSideOccupied = sides[bedside].isInBed;

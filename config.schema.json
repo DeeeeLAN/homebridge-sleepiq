@@ -53,6 +53,30 @@
                     { "title": "6h", "enum": ["6h"] }
                 ],
                 "description": "Sets the timeout used when turning on the foot warmer. I recommend leaving it at the highest value, then using Homekit to turn it off sooner if desired. There is no way to leave the foot warmer on indefinitely, unfortunately."
+            },
+            "ignoreList": {
+                "type": "array",
+                "required": false,
+                "items": {
+                    "title": "Device Ignore List",
+                    "type": "object",
+                    "properties": {
+                        "name" : {
+                            "title": "Name",
+                            "type": "string",
+                            "placeholder": "Device Name...",
+                            "required": false,
+                            "description": "Enter a name to remind you what each UUID refers to"
+                        },
+                        "uuid": {
+                            "title": "UUID",
+                            "type": "string",
+                            "placeholder": "Device UUID...",
+                            "required": true,
+                            "description": "Enter the device UUID you want to ignore (found in the homebridge log)"
+                        }
+                    }
+                }
             }
         }
     }
