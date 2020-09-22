@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.11 (2020-09-22)
+
+### Bug Fixes
+
+- Fixed bed0privacy cache issues
+
 ## v4.1.10 (2020-09-21)
 
 ### Bug Fixes

@@ -510,36 +510,26 @@ class SleepIQPlatform {
       return false;
     }
 
-    // call each loop in case the new accessory is a duplicate of a stale accessory. 
-    // If the new one is the stale one, homebridge will crash due to the UUID conflict. 
-    this.removeMarkedAccessories();
-
     this.log("Configuring Cached Accessory: ", accessory.displayName, "UUID: ", accessory.UUID);
 
     // remove old privacy accessory
     if (accessory.displayName.slice(-7) === 'privacy') {
       if (!accessory.context.bedName) {
         this.log("Stale accessory. Marking for removal");
-        accessory.context.remove = true;
-        this.staleAccessories.push(accessory);
-        return;
+        accessory.context.type = 'remove';
       }
     }
     
     if (accessory.displayName.slice(-4) === 'Side') {
       this.log("Stale accessory. Marking for removal");
-      accessory.context.remove = true;
-      this.staleAccessories.push(accessory);
-      return;
+      accessory.context.type = 'remove';
     }            
     
     if (Array.from(this.accessories.values()).map(a => a.accessory.displayName).includes(accessory.displayName)) {
       this.log("Duplicate accessory detected in cache: ", accessory.displayName, "If this appears incorrect, file a ticket on github. Removing duplicate accessory from cache.");
       this.log("You might need to restart homebridge to clear out the old data, especially if the accessory UUID got duplicated.");
       this.log("If the issue persists, try clearing your accessory cache.");
-      accessory.context.remove = true;
-      this.staleAccessories.push(accessory);
-      return;
+      accessory.context.type = 'remove';
     }
     
     switch(accessory.context.type) {
@@ -587,10 +577,15 @@ class SleepIQPlatform {
         break;
       default:
         this.log("Unknown accessory type. Removing from accessory cache.");
+      case 'remove':
         accessory.context.remove = true;
+        accessory.UUID = UUIDGen.generate(accessory.sideID+'remove');
+        accessory._associatedHAPAccessory.UUID = accessory.UUID;
         this.staleAccessories.push(accessory);
-        return;
+        return false;
+        
     }
+    return true;
   }
   
   async fetchData () {
