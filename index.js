@@ -40,8 +40,10 @@ class SleepIQPlatform {
 
     // Set default available components
     this.hasFoundation = false;
-    this.hasOutlets = false;
-    this.hasLightstrips = false;
+    this.hasOutletLeft = false; // 2
+    this.hasOutletRight = false; // 1
+    this.hasLightstripLeft = false; // 3
+    this.hasLightstripRight = false; // 4
     this.hasWarmers = false;
 
     if (api) {
@@ -160,16 +162,16 @@ class SleepIQPlatform {
             if (err) {
               this.log.debug(data, err);
             } else {
-              this.log.debug("outletStatus result:", data);
+              this.log.debug("right outletStatus result:", data);
               let outletStatus = JSON.parse(data);
               if(outletStatus.hasOwnProperty('Error')) {
                 if (outletStatus.Error.Code === 404) {
-                  this.log("No outlet detected");
+                  this.log("No right outlet detected");
                 } else {
-                  this.log("Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                  this.log("Unknown error occurred when checking the right outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
                 }
               } else {
-                this.hasOutlets = true
+                this.hasOutletRight = true
               }
             }
           }).bind(this));
@@ -177,7 +179,33 @@ class SleepIQPlatform {
           if (typeof err === 'string' || err instanceof String)
             err = JSON.parse(err)
           if (!(err.statusCode === 404)) {
-            this.log("Failed to retrieve outlet status:", JSON.stringify(err));
+            this.log("Failed to retrieve right outlet status:", JSON.stringify(err));
+          }
+        }
+
+        try {
+          await this.snapi.outletStatus('2', ((data, err=null) => {
+            if (err) {
+              this.log.debug(data, err);
+            } else {
+              this.log.debug("left outletStatus result:", data);
+              let outletStatus = JSON.parse(data);
+              if(outletStatus.hasOwnProperty('Error')) {
+                if (outletStatus.Error.Code === 404) {
+                  this.log("No left outlet detected");
+                } else {
+                  this.log("Unknown error occurred when checking the left outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                }
+              } else {
+                this.hasOutletLeft = true
+              }
+            }
+          }).bind(this));
+        } catch(err) {
+          if (typeof err === 'string' || err instanceof String)
+            err = JSON.parse(err)
+          if (!(err.statusCode === 404)) {
+            this.log("Failed to retrieve left outlet status:", JSON.stringify(err));
           }
         }
   
@@ -187,16 +215,16 @@ class SleepIQPlatform {
             if (err) {
               this.log.debug(data, err);
             } else {
-              this.log.debug("lightstrip outletStatus result:", data);
+              this.log.debug("right lightstrip outletStatus result:", data);
               let outletStatus = JSON.parse(data);
               if(outletStatus.hasOwnProperty('Error')) {
                 if (outletStatus.Error.Code === 404) {
-                  this.log("No lightstrip detected");
+                  this.log("No right lightstrip detected");
                 } else {
-                  this.log("Unknown error occurred when checking the lightstrip status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                  this.log("Unknown error occurred when checking the right lightstrip status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
                 }
               } else {
-                this.hasLightstrips = true
+                this.hasLightstripRight = true
               }
             }
           }).bind(this));
@@ -204,7 +232,33 @@ class SleepIQPlatform {
           if (typeof err === 'string' || err instanceof String)
             err = JSON.parse(err)
           if (!(err.statusCode === 404)) {
-            this.log("Failed to retrieve lightstrip status:", JSON.stringify(err));
+            this.log("Failed to retrieve right lightstrip status:", JSON.stringify(err));
+          }
+        }
+
+        try {
+          await this.snapi.outletStatus('4', ((data, err=null) => {
+            if (err) {
+              this.log.debug(data, err);
+            } else {
+              this.log.debug("left lightstrip outletStatus result:", data);
+              let outletStatus = JSON.parse(data);
+              if(outletStatus.hasOwnProperty('Error')) {
+                if (outletStatus.Error.Code === 404) {
+                  this.log("No left lightstrip detected");
+                } else {
+                  this.log("Unknown error occurred when checking the left lightstrip status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                }
+              } else {
+                this.hasLightstripLeft = true
+              }
+            }
+          }).bind(this));
+        } catch(err) {
+          if (typeof err === 'string' || err instanceof String)
+            err = JSON.parse(err)
+          if (!(err.statusCode === 404)) {
+            this.log("Failed to retrieve left lightstrip status:", JSON.stringify(err));
           }
         }
   
@@ -344,7 +398,7 @@ class SleepIQPlatform {
             }
 
             // register side outlet control
-            if (this.hasOutlets) {
+            if ((sideName === 'rightSide' && this.hasOutletRight) || (sideName === 'leftSide' && this.hasOutletLeft)) {
               if (!this.accessories.has(sideID+'outlet')) {
                 // register outlet
                 this.log("Found BedSide Outlet: ", sideName);
@@ -370,7 +424,7 @@ class SleepIQPlatform {
             }
 
             // register side lightstrip control
-            if (this.hasLightstrips) {
+            if ((sideName === 'rightSide' && this.hasLightstripRight) || (sideName === 'leftSide' && this.hasLightstripLeft)) {
               if (!this.accessories.has(sideID+'lightstrip')) {
                 // register lightstrip
                 this.log("Found BedSide Lightstrip: ", sideName);
@@ -696,7 +750,7 @@ class SleepIQPlatform {
                 }
 
                 // check outlet data
-                if (this.hasOutlets) {
+                if ((sideName === 'rightSide' && this.hasOutletRight) || (sideName === 'leftSide' && this.hasOutletLeft)) {
                   // fetch outlet data
                   try {
                     await this.snapi.outletStatus(bedside === 'rightSide' ? '1' : '2', (data, err=null) => {
@@ -725,7 +779,7 @@ class SleepIQPlatform {
                 } // if(this.hasOutlets)
 
                 // check lightstrip data
-                if (this.hasLightstrips) {
+                if ((sideName === 'rightSide' && this.hasLightstripRight) || (sideName === 'leftSide' && this.hasLightstripLeft)) {
                   // fetch lightstrip data
                   try {
                     await this.snapi.outletStatus(bedside === 'rightSide' ? '3' : '4', (data, err=null) => {

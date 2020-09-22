@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.8 (2020-09-21)
+
+### Bug Fixes
+
+- Fixed bug causing homebridge crash when foundation only has one outlet or lightstrip available
+
 ## v4.1.7 (2020-09-21)
 
 ### Bug Fixes
