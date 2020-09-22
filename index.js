@@ -285,7 +285,7 @@ class SleepIQPlatform {
           if (typeof err === 'string' || err instanceof String)
             err = JSON.parse(err)
           if (!(err.statusCode === 404)) {
-            this.log("Failed to retrieve foot warmer status:", JSON.stringify(err));
+            this.log("Failed to retrieve foot warmer status:", JSON.stringify(err.error));
           }
         }
       }
@@ -677,7 +677,7 @@ class SleepIQPlatform {
               }
             });          
           } catch(err) {
-            this.log("Failed to fetch foundation status:", err);
+            this.log("Failed to fetch foundation status:", err.error);
           }
         }
         
@@ -701,7 +701,7 @@ class SleepIQPlatform {
               }
             });
           } catch(err) {
-            this.log('Failed to fetch foot warmer status:', err);
+            this.log('Failed to fetch foot warmer status:', err.error);
           }
         }
         
@@ -769,7 +769,7 @@ class SleepIQPlatform {
                       }
                     });
                   } catch(err) {
-                    this.log('Failed to fetch outlet status:', err);
+                    this.log('Failed to fetch outlet status:', err.error);
                   }
                 } // if(this.hasOutlets)
 
@@ -798,7 +798,7 @@ class SleepIQPlatform {
                       }
                     });
                   } catch(err) {
-                    this.log('Failed to fetch lightstrip status:', err);
+                    this.log('Failed to fetch lightstrip status:', err.error);
                   }
                 } // if(this.hasLightstrips)
 
@@ -1156,7 +1156,7 @@ class snOutlet {
     let side = this.accessory.context.side;
     this.log.debug('Setting outlet on side='+side+' to='+value);
     try {
-      this.snapi.outlet(sideName == 'rightSide' ? '1' : '2', value ? '1' : '0', (data, err=null) => {
+      this.snapi.outlet(this.sideName == 'rightSide' ? '1' : '2', value ? '1' : '0', (data, err=null) => {
         if (err) {
           this.log.debug(data, err);
         } else {
@@ -1220,7 +1220,7 @@ class snLightStrip {
     let side = this.accessory.context.side;
     this.log.debug('Setting light-strip on side='+side+' to='+value);
     try {
-      this.snapi.outlet(sideName == 'rightSide' ? '3' : '4', value ? '1' : '0', (data, err=null) => {
+      this.snapi.outlet(this.sideName == 'rightSide' ? '3' : '4', value ? '1' : '0', (data, err=null) => {
         if (err) {
           this.log.debug(data, err);
         } else {

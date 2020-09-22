@@ -52,6 +52,7 @@ class API {
 	this.key = ''
 	this.json = ''
 	this.defaultBed = 0 // change if you want the class methods to default to a different bed in your datasets.
+	this.testing = false
     }
 
     login (callback=null) {
@@ -434,19 +435,30 @@ class API {
     }
 
     foundationStatus (callback=null) {
-	return request({
-	    method: 'GET',
-	    uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/status',
-	    qs: {_k: this.key}
-	}, function(err, resp, data) {
-	    if (err) {
-		return callback("foundationStatus GET failed. Error:",err);
-	    }
-	    this.json = JSON.parse(data);
-	    if (callback) {
-		callback(data);
-	    }
-	})
+		return request({
+			method: 'GET',
+			uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/status',
+			qs: {_k: this.key}
+		}, 
+			function(err, resp, data) {
+				if (err) {
+					return callback("foundationStatus GET failed. Error:",err);
+				}
+				this.json = JSON.parse(data);
+				
+				if (this.testing) {
+					this.json = {"fsCurrentPositionPresetRight":"Not at preset","fsNeedsHoming":false,"fsRightFootPosition":"00","fsLeftPositionTimerLSB":"00","fsTimerPositionPresetLeft":"No timer running, thus no preset to active","fsCurrentPositionPresetLeft":"Not at preset","fsLeftPositionTimerMSB":"00","fsRightFootActuatorMotorStatus":"00","fsCurrentPositionPreset":"00","fsTimerPositionPresetRight":"No timer running, thus no preset to active","fsType":"Split Head","fsOutletsOn":false,"fsLeftHeadPosition":"09","fsIsMoving":false,"fsRightHeadActuatorMotorStatus":"00","fsStatusSummary":"42","fsTimerPositionPreset":"00","fsLeftFootPosition":"00","fsRightPositionTimerLSB":"00","fsTimedOutletsOn":false,"fsRightHeadPosition":"0c","fsConfigured":true,"fsRightPositionTimerMSB":"00","fsLeftHeadActuatorMotorStatus":"00","fsLeftFootActuatorMotorStatus":"00"}
+					if (callback) {
+						callback(JSON.stringify(this.json))
+						return;
+					}
+				}
+
+				if (callback) {
+				callback(data);
+				}
+			}.bind(this)
+		)
 	// console.log(JSON.stringify(this.json, null, 3))}.bind(this))
 
 	/*
@@ -498,11 +510,21 @@ class API {
 					return callback("outletStatus GET failed. Error:", err);
 				}
 				this.json = JSON.parse(data)
+		
+				if (this.testing) {
+					this.json = {"bedId":this.bedID,"outlet":num,"setting":0,"timer":null}
+					if (callback) {
+						callback(JSON.stringify(this.json))
+						return;
+					}
+				}
+				
 				if (callback) {
 					callback(data);
 				}
 				// console.log(JSON.stringify(this.json, null, 3))
-			}.bind(this))
+			}.bind(this)
+		)
 
 		/*
 			"Error": {
@@ -524,6 +546,15 @@ class API {
 					return callback("outlet PUT failed. Error:",err);
 				}
 				this.json = JSON.parse(data)
+		
+				if (this.testing) {
+					this.json = {"bedId":this.bedID,"outlet":num,"setting":setting,"timer":null}
+					if (callback) {
+						callback(JSON.stringify(this.json))
+						return;
+					}
+				}
+
 				if (callback) {
 					callback(data);
 				}
@@ -550,6 +581,15 @@ class API {
 					return callback("footWarmingStatus GET failed. Error:",err);
 				}
 				this.json = JSON.parse(data)
+		
+				if (this.testing) {
+					this.json = {"footWarmingStatusLeft":31,"footWarmingStatusRight":0,"footWarmingTimerLeft":292,"footWarmingTimerRight":0}
+					if (callback) {
+						callback(JSON.stringify(this.json))
+						return;
+					}
+				}
+
 				if (callback) {
 					callback(data);
 				}
@@ -579,6 +619,17 @@ class API {
 					return callback("outlet PUT failed. Error:",err);
 				}
 				this.json = JSON.parse(data)
+		
+				if (this.testing) {
+					this.json = side === "RIGHT" ? 
+						{"footWarmingStatusLeft":31,"footWarmingStatusRight":temp,"footWarmingTimerLeft":292,"footWarmingTimerRight":timer} : 
+						{"footWarmingStatusLeft":temp,"footWarmingStatusRight":0,"footWarmingTimerLeft":timer,"footWarmingTimerRight":0}
+					if (callback) {
+						callback(JSON.stringify(this.json))
+						return;
+					}
+				}
+
 				if (callback) {
 					callback(data);
 				}

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.14 (2020-09-22)
+
+### Bug Fixes
+
+- Fixed `sideName is not defined` error
+- Cleaned up error message output some
+
+### API Features
+
+- Added testing switch to simulate foundation devices when they are unavailable on your account to assist with development
+
 ## v4.1.13 (2020-09-22)
 
 ### Bug Fixes
