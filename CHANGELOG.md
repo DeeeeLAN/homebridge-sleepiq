@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.13 (2020-09-22)
+
+### Bug Fixes
+
+- Fixed outlets and lightstrips not getting created and causing homebridge to restart
+
 ## v4.1.12 (2020-09-22)
 
 ### Bug Fixes

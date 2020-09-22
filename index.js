@@ -398,7 +398,7 @@ class SleepIQPlatform {
             }
 
             // register side outlet control
-            if ((sideName === 'rightSide' && this.hasOutletRight) || (sideName === 'leftSide' && this.hasOutletLeft)) {
+            if ((bedside === 'rightSide' && this.hasOutletRight) || (bedside === 'leftSide' && this.hasOutletLeft)) {
               if (!this.accessories.has(sideID+'outlet')) {
                 // register outlet
                 this.log("Found BedSide Outlet: ", sideName);
@@ -424,7 +424,7 @@ class SleepIQPlatform {
             }
 
             // register side lightstrip control
-            if ((sideName === 'rightSide' && this.hasLightstripRight) || (sideName === 'leftSide' && this.hasLightstripLeft)) {
+            if ((bedside === 'rightSide' && this.hasLightstripRight) || (bedside === 'leftSide' && this.hasLightstripLeft)) {
               if (!this.accessories.has(sideID+'lightstrip')) {
                 // register lightstrip
                 this.log("Found BedSide Lightstrip: ", sideName);
