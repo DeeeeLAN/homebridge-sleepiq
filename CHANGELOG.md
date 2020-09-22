@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.10 (2020-09-21)
+
+### Bug Fixes
+
+- Fixed `sideName is not defined` bug
+
 ## v4.1.9 (2020-09-21)
 
 ### Bug Fixes

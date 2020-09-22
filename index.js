@@ -750,7 +750,7 @@ class SleepIQPlatform {
                 }
 
                 // check outlet data
-                if ((sideName === 'rightSide' && this.hasOutletRight) || (sideName === 'leftSide' && this.hasOutletLeft)) {
+                if ((bedside === 'rightSide' && this.hasOutletRight) || (bedside === 'leftSide' && this.hasOutletLeft)) {
                   // fetch outlet data
                   try {
                     await this.snapi.outletStatus(bedside === 'rightSide' ? '1' : '2', (data, err=null) => {
@@ -779,7 +779,7 @@ class SleepIQPlatform {
                 } // if(this.hasOutlets)
 
                 // check lightstrip data
-                if ((sideName === 'rightSide' && this.hasLightstripRight) || (sideName === 'leftSide' && this.hasLightstripLeft)) {
+                if ((bedside === 'rightSide' && this.hasLightstripRight) || (bedside === 'leftSide' && this.hasLightstripLeft)) {
                   // fetch lightstrip data
                   try {
                     await this.snapi.outletStatus(bedside === 'rightSide' ? '3' : '4', (data, err=null) => {
