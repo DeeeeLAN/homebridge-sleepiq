@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.9 (2020-09-21)
+
+### Bug Fixes
+
+- Fixed bug with foot warmer causing UUID collision
+
 ## v4.1.8 (2020-09-21)
 
 ### Bug Fixes

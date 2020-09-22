@@ -452,7 +452,7 @@ class SleepIQPlatform {
             // register side foot warmer control
             if (this.hasWarmers) {
               // register foot warmer
-              if(!this.accessories.has(bedID+'footwarmer')) {
+              if(!this.accessories.has(sideID+'footwarmer')) {
                 this.log("Found BedSide Foot Warmer: ", sideName);
                     
                 let uuid = UUIDGen.generate(sideID+'footwarmer');
