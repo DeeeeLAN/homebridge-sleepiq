@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.12 (2020-09-22)
+
+### Bug Fixes
+
+- Fixed refresh time not working issue (#29)
+
 ## v4.1.11 (2020-09-22)
 
 ### Bug Fixes

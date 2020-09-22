@@ -20,7 +20,7 @@
                 "required": true,
                 "placeholder": "SleepIQ Password"
             },
-            "refresh": {
+            "refreshTime": {
                 "title": "Refresh Time (in seconds)",
                 "type": "integer",
                 "required": false,
