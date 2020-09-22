@@ -495,7 +495,7 @@ class API {
 		},
 			function(err, resp, data) {
 				if (err) {
-					return callback("outletStatus GET failed. Error:",err);
+					return callback("outletStatus GET failed. Error:", err);
 				}
 				this.json = JSON.parse(data)
 				if (callback) {

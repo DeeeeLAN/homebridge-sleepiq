@@ -141,98 +141,101 @@ class SleepIQPlatform {
             } else {
               this.hasFoundation = true;
 
-              // check if the foundation has outlets
-              try {
-                await this.snapi.outletStatus('1', ((data, err=null) => {
-                  if (err) {
-                    this.log.debug(data, err);
-                  } else {
-                    this.log.debug("outletStatus result:", data);
-                    let outletStatus = JSON.parse(data);
-                    if(outletStatus.hasOwnProperty('Error')) {
-                      if (outletStatus.Error.Code === 404) {
-                        this.log("No outlet detected");
-                      } else {
-                        this.log("Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
-                      }
-                    } else {
-                      this.hasOutlets = true
-                    }
-                  }
-                }).bind(this));
-              } catch(err) {
-                if (typeof err === 'string' || err instanceof String)
-                  err = JSON.parse(err)
-                if (!(err.statusCode === 404)) {
-                  this.log("Failed to retrieve outlet status:", JSON.stringify(err));
-                }
-              }
-
-              // check if the foundation has lightstrips
-              try {
-                await this.snapi.outletStatus('3', ((data, err=null) => {
-                  if (err) {
-                    this.log.debug(data, err);
-                  } else {
-                    this.log.debug("outletStatus result:", data);
-                    let outletStatus = JSON.parse(data);
-                    if(outletStatus.hasOwnProperty('Error')) {
-                      if (outletStatus.Error.Code === 404) {
-                        this.log("No lightstrip detected");
-                      } else {
-                        this.log("Unknown error occurred when checking the lightstrip status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
-                      }
-                    } else {
-                      this.hasLightstrips = true
-                    }
-                  }
-                }).bind(this));
-              } catch(err) {
-                if (typeof err === 'string' || err instanceof String)
-                  err = JSON.parse(err)
-                if (!(err.statusCode === 404)) {
-                  this.log("Failed to retrieve lightstrip status:", JSON.stringify(err));
-                }
-              }
-
-              // check if the foundation has foot warmers
-              try {
-                await this.snapi.footWarmingStatus(((data, err=null) => {
-                  if (err) {
-                    this.log.debug(data, err);
-                  } else {
-                    this.log.debug("footWarmingStatus result:", data);
-                    let footWarmingStatus = JSON.parse(data);
-                    if(footWarmingStatus.hasOwnProperty('Error')) {
-                      if (footWarmingStatus.Error.Code === 404) {
-                        this.log("No foot warmer detected");
-                      } else {
-                        this.log("Unknown error occurred when checking the foot warmer status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
-                      }
-                    } else {
-                      this.hasWarmers = true
-                    }
-                  }
-                }).bind(this));
-              } catch(err) {
-                if (typeof err === 'string' || err instanceof String)
-                  err = JSON.parse(err)
-                if (!(err.statusCode === 404)) {
-                  this.log("Failed to retrieve foot warmer status:", JSON.stringify(err));
-                }
-              }
-
+              
             }
           }
         }).bind(this));
       } catch(err) {
         if (typeof err === 'string' || err instanceof String)
-          err = JSON.parse(err)
+        err = JSON.parse(err)
         if (!(err.statusCode === 404)) {
           this.log("Failed to retrieve foundation status:", JSON.stringify(err));
         }
       }
       
+      if (this.hasFoundation) {
+        // check if the foundation has outlets
+        try {
+          await this.snapi.outletStatus('1', ((data, err=null) => {
+            if (err) {
+              this.log.debug(data, err);
+            } else {
+              this.log.debug("outletStatus result:", data);
+              let outletStatus = JSON.parse(data);
+              if(outletStatus.hasOwnProperty('Error')) {
+                if (outletStatus.Error.Code === 404) {
+                  this.log("No outlet detected");
+                } else {
+                  this.log("Unknown error occurred when checking the outlet status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                }
+              } else {
+                this.hasOutlets = true
+              }
+            }
+          }).bind(this));
+        } catch(err) {
+          if (typeof err === 'string' || err instanceof String)
+            err = JSON.parse(err)
+          if (!(err.statusCode === 404)) {
+            this.log("Failed to retrieve outlet status:", JSON.stringify(err));
+          }
+        }
+  
+        // check if the foundation has lightstrips
+        try {
+          await this.snapi.outletStatus('3', ((data, err=null) => {
+            if (err) {
+              this.log.debug(data, err);
+            } else {
+              this.log.debug("lightstrip outletStatus result:", data);
+              let outletStatus = JSON.parse(data);
+              if(outletStatus.hasOwnProperty('Error')) {
+                if (outletStatus.Error.Code === 404) {
+                  this.log("No lightstrip detected");
+                } else {
+                  this.log("Unknown error occurred when checking the lightstrip status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                }
+              } else {
+                this.hasLightstrips = true
+              }
+            }
+          }).bind(this));
+        } catch(err) {
+          if (typeof err === 'string' || err instanceof String)
+            err = JSON.parse(err)
+          if (!(err.statusCode === 404)) {
+            this.log("Failed to retrieve lightstrip status:", JSON.stringify(err));
+          }
+        }
+  
+        // check if the foundation has foot warmers
+        try {
+          await this.snapi.footWarmingStatus(((data, err=null) => {
+            if (err) {
+              this.log.debug(data, err);
+            } else {
+              this.log.debug("footWarmingStatus result:", data);
+              let footWarmingStatus = JSON.parse(data);
+              if(footWarmingStatus.hasOwnProperty('Error')) {
+                if (footWarmingStatus.Error.Code === 404) {
+                  this.log("No foot warmer detected");
+                } else {
+                  this.log("Unknown error occurred when checking the foot warmer status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+                }
+              } else {
+                this.hasWarmers = true
+              }
+            }
+          }).bind(this));
+        } catch(err) {
+          if (typeof err === 'string' || err instanceof String)
+            err = JSON.parse(err)
+          if (!(err.statusCode === 404)) {
+            this.log("Failed to retrieve foot warmer status:", JSON.stringify(err));
+          }
+        }
+      }
+
       // Check if bed has privacy mode
       if(!this.accessories.has(bedID+'privacy')) {
         this.log("Found Bed Privacy Switch: ", bedName);

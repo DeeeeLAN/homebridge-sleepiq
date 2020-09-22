@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.7 (2020-09-21)
+
+### Bug Fixes
+
+- Fixed bug in the outlets, lightstrips, and foot warmer foundation code that was crashing homebridge.
+
 ## v4.1.6 (2020-09-20)
 
 ### Bug Fixes
