@@ -128,7 +128,7 @@ class SleepIQPlatform {
       
       // Check if there is a foundation attached
       try {
-        await this.snapi.foundationStatus((async (data, err=null) => {
+        await this.snapi.foundationStatus(((data, err=null) => {
           if (err) {
             this.log.debug(data, err);
           } else {
@@ -975,6 +975,7 @@ class snFlex {
     this.headPosition = 0;
     this.footPosition = 0;
     this.sideName = this.accessory.context.sideName;
+    this.foundationIsMoving = false
     
     this.foundationHeadService = this.accessory.getService(this.sideName+'FlexHead');
     this.foundationFootService = this.accessory.getService(this.sideName+'FlexFoot');
@@ -984,23 +985,55 @@ class snFlex {
     this.getFoundation = this.getFoundation.bind(this);
     
   }
-  
 
-  waitForBedToStopMoving (fn, value, delay) {
-    let timeOutId;
-    return function() {
-      if(timeOutId) {
-        clearTimeout(timeOutId);
+  __delay__(timer) {
+    return new Promise(resolve => {
+        timer = timer || 2000;
+        setTimeout(function () {
+            resolve();
+        }, timer);
+    });
+  };
+
+  async waitForBedToStopMoving () {
+    while (this.foundationIsMoving) {
+      try {
+        await this.snapi.foundationStatus(((data, err=null) => {
+          if (err) {
+            this.log.debug(data, err);
+          } else {
+            this.log.debug("foundationStatus result:", data);
+            let foundationStatus = JSON.parse(data);
+            if(foundationStatus.hasOwnProperty('Error')) {
+              if (foundationStatus.Error.Code === 404) {
+                this.log("No foundation detected");
+              } else {
+                this.log("Unknown error occurred when checking the foundation status. See previous output for more details. If it persists, please report this incident at https://github.com/DeeeeLAN/homebridge-sleepiq/issues/new");
+              }
+            } else {
+              this.foundationIsMoving = foundationStatus.fsIsMoving;
+            }
+          }
+        }).bind(this));
+      } catch(err) {
+        if (typeof err === 'string' || err instanceof String)
+        err = JSON.parse(err)
+        if (!(err.statusCode === 404)) {
+          this.log("Failed to retrieve foundation status:", JSON.stringify(err));
+        }
       }
-      timeOutId = setTimeout(() => {
-        fn(value);
-      },delay);
-    }()
+
+      if (!this.foundationIsMoving) {
+        return;
+      }
+      await __delay__(500); // wait 0.5s before trying again
+    }
   }
   
   // Send a new foundation position to the bed
   setFoundation (actuator, value) {
     let side = this.accessory.context.side;
+    await this.waitForBedToStopMoving(); // wait for bed to stop moving
     this.log.debug('Setting foundation position='+value+' on side='+side+' for position='+actuator);
     try {
       this.snapi.adjust(side, actuator, value, (data, err=null) => {
