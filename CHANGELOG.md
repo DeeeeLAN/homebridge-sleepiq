@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.16 (2020-09-23)
+
+### Bug Fixes
+
+- Fixed right lightstrip and outlet controlling the left side
+
 ## v4.1.15 (2020-09-22)
 
 ### Bug Fixes
