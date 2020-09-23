@@ -1156,7 +1156,7 @@ class snOutlet {
     let side = this.accessory.context.side;
     this.log.debug('Setting outlet on side='+side+' to='+value);
     try {
-      this.snapi.outlet(this.sideName == 'rightSide' ? '1' : '2', value ? '1' : '0', (data, err=null) => {
+      this.snapi.outlet(this.sideName == 'rightSide' ? 1 : 2, value ? 1 : 0, (data, err=null) => {
         if (err) {
           this.log.debug(data, err);
         } else {
@@ -1220,7 +1220,7 @@ class snLightStrip {
     let side = this.accessory.context.side;
     this.log.debug('Setting light-strip on side='+side+' to='+value);
     try {
-      this.snapi.outlet(this.sideName == 'rightSide' ? '3' : '4', value ? '1' : '0', (data, err=null) => {
+      this.snapi.outlet(this.sideName == 'rightSide' ? 3 : 4, value ? 1 : 0, (data, err=null) => {
         if (err) {
           this.log.debug(data, err);
         } else {

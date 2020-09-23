@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.15 (2020-09-22)
+
+### Bug Fixes
+
+- Fixed bug with outlet and light controls not updating the bed state
+
 ## v4.1.14 (2020-09-22)
 
 ### Bug Fixes

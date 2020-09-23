@@ -539,7 +539,8 @@ class API {
         return request({
             method: 'PUT',
             uri: 'https://api.sleepiq.sleepnumber.com/rest/bed/'+this.bedID+'/foundation/outlet',
-			qs: {_k: this.key, outletId: num, setting: setting}
+			qs: {_k: this.key},
+			body: JSON.stringify({outletId: num, setting: setting})
 		},
 			function(err, resp, data) {
 				if (err) {
