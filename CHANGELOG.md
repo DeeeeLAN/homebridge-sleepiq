@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.2.0 (2020-10-16)
+
+### Changes
+
+- Add a "bothSidesOccupied" sensor that will trigger if both sides of the bed are occupied
+
 ## v4.1.16 (2020-09-23)
 
 ### Bug Fixes

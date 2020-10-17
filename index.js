@@ -488,11 +488,19 @@ class SleepIQPlatform {
       // add "anySide" occupancy sensor
       const anySideID = bedID + "anySide";
       const anySideName = bedName + "anySide";
-      if(!this.accessories.has(anySideID+'occupancy')) {
+      if (!this.accessories.has(anySideID+'occupancy')) {
         // register 'any' side occupancy sensor
         registerOccupancySensor(anySideName, anySideID);
       } else {
         this.log(anySideName + " occupancy already added from cache");
+      }
+
+      const bothSidesID = bedID + 'bothSides';
+      const bothSidesName = bedName + 'bothSides';
+      if (!this.accessories.has(bothSidesID + 'occupancy')) {
+        registerOccupancySensor(bothSidesName, bothSidesID);
+      } else {
+        this.log(bothSidesName + ' occupancy already added from cache');
       }
 
     }.bind(this))
@@ -706,6 +714,7 @@ class SleepIQPlatform {
         }
         
         let anySideOccupied = false;
+        let bothSidesOccupied = true;
         
         if (sides) {
           // check data on each bed side
@@ -724,6 +733,7 @@ class SleepIQPlatform {
               let bedSideOccAccessory = this.accessories.get(sideID+'occupancy');
               bedSideOccAccessory.setOccupancyDetected(thisSideOccupied);
               anySideOccupied = anySideOccupied || thisSideOccupied;
+              bothSidesOccupied = bothSidesOccupied && thisSideOccupied;
               
               // update side number
               this.log.debug('SleepIQ Sleep Number: {' + bedside + ':' + sides[bedside].sleepNumber + '}')
@@ -825,6 +835,9 @@ class SleepIQPlatform {
         
         let anySideOccAccessory = this.accessories.get(bedID + 'anySide' + 'occupancy');
         anySideOccAccessory.setOccupancyDetected(anySideOccupied);
+
+        let bothSidesOccAccessory = this.accessories.get(bedID + 'bothSides' + 'occupancy');
+        bothSidesOccAccessory.setOccupancyDetected(bothSidesOccupied);
         
       }.bind(this))
     } else {
