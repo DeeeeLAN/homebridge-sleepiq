@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## v5.0.0 (2020-11-14)
 
-In my origin readme, I had a statement: 
+In my original readme, I had a statement: 
 
 > So far, I have not seen Sleep Number get upset with too many requests, but in theory they could at some point in time if we flood their network.
 
